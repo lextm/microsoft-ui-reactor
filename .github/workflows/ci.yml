@@ -72,3 +72,60 @@ jobs:
 
       - name: Test
         run: dotnet test tests/Reactor.Tests/Reactor.Tests.csproj --no-restore --logger "console;verbosity=normal"
+
+  pack:
+    name: Pack
+    needs: changes
+    if: needs.changes.outputs.non-md == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Compute version
+        id: version
+        shell: pwsh
+        run: |
+          # 0.1.0-pr.<num>.<sha7>  for PRs
+          # 0.1.0-ci.<run>.<sha7>  for push to main
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          if ("${{ github.event_name }}" -eq "pull_request") {
+            $version = "0.1.0-pr.${{ github.event.number }}.$sha"
+          } else {
+            $version = "0.1.0-ci.${{ github.run_number }}.$sha"
+          }
+          Write-Host "Computed version: $version"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Restore framework
+        run: dotnet restore src/Reactor/Reactor.csproj
+
+      - name: Pack framework (Microsoft.UI.Reactor)
+        run: >
+          dotnet pack src/Reactor/Reactor.csproj
+          -c Release -p:Platform=x64
+          -p:Version=${{ steps.version.outputs.version }}
+          -o artifacts/nupkg
+
+      - name: Pack templates (Microsoft.UI.Reactor.Templates)
+        run: >
+          dotnet pack src/Reactor.Templates/Reactor.Templates.csproj
+          -c Release
+          -p:Version=${{ steps.version.outputs.version }}
+          -o artifacts/nupkg
+
+      - name: Upload packages
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: nupkg-${{ steps.version.outputs.version }}
+          path: |
+            artifacts/nupkg/*.nupkg
+            artifacts/nupkg/*.snupkg
+          retention-days: 14
+          if-no-files-found: error
