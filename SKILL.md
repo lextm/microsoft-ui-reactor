@@ -26,28 +26,36 @@ re-renders automatically. No XAML. No data binding. No ViewModels.
 
 ## Project Setup
 
+The fastest way to get started is the `dotnet new` template — it produces a project that already has all the boilerplate below correct:
+
+```powershell
+dotnet new install Microsoft.UI.Reactor.Templates
+dotnet new reactor -n MyApp
+cd MyApp
+dotnet run
+```
+
+If you'd rather hand-author a `.csproj`, copy this exactly:
+
 ### .csproj (copy exactly)
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
     <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental6" />
-    <ProjectReference Include="..\Reactor\Reactor.csproj" />
+    <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-*" />
   </ItemGroup>
 </Project>
 ```
 
-`WindowsPackageType` MUST be `None` (unpackaged, no App.xaml). `UseWinUI`
-MUST be `true`. No XAML files of any kind.
+`RuntimeIdentifiers` must be declared in the consumer csproj — NuGet restore can't pick it up from the package's transitive props. The package brings in `Microsoft.WindowsAppSDK` transitively and sets `UseWinUI=true`, `WindowsPackageType=None`, `WindowsAppSDKSelfContained=true`, and an appropriate `RuntimeIdentifier` automatically. No XAML files of any kind.
 
 ### Required imports
 
@@ -276,6 +284,9 @@ class App : Component
 
 ## Testing
 
+> **Contributors only** — these targets need a clone of the Reactor repo.
+> If you're consuming the NuGet package, write your own tests against your app.
+
 Reactor has three test suites. Run the one that matches what you changed.
 
 ```bash
@@ -299,14 +310,10 @@ dotnet test Reactor.sln
 For lightweight demos, skip the `.csproj` entirely. Add a file-level header:
 
 ```csharp
-#:project C:\Users\andersonch\Code\reactor1\src\Reactor
-#:package Microsoft.WindowsAppSDK@2.0.0-experimental6
+#:package Microsoft.UI.Reactor@0.1.0-*
 #:property OutputType=WinExe
 #:property TargetFramework=net9.0-windows10.0.22621.0
-#:property UseWinUI=true
-#:property WindowsPackageType=None
-#:property WindowsAppSDKSelfContained=true
-#:property RuntimeIdentifier=win-arm64
+#:property RuntimeIdentifiers=win-x64;win-arm64
 
 using Microsoft.UI.Reactor;
 using static Microsoft.UI.Reactor.Factories;
@@ -318,9 +325,7 @@ ReactorApp.Run("Hello", ctx =>
 });
 ```
 
-Run with `dotnet run MyApp.cs`. Adjust `#:project` to your clone's
-`src/Reactor` directory. Use `win-arm64` on ARM, `win-x64` on x64 — check
-with `dotnet --info`.
+Run with `dotnet run MyApp.cs`. The `Microsoft.UI.Reactor` package's transitive props pick the right `RuntimeIdentifier` for your machine automatically.
 
 > **Always capture `dotnet run` output.** Build errors exit with code 1.
 > Read compiler output, fix, retry. Don't assume success without checking.
