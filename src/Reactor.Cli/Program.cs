@@ -214,6 +214,7 @@ string GenerateCsproj(bool fromSource, string reactorVersion)
         <OutputType>WinExe</OutputType>
         <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
         <Platforms>x64;ARM64</Platforms>
+        <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <UseWinUI>true</UseWinUI>

@@ -40,12 +40,16 @@ dotnet new reactor -n MyApp --ReactorVersion 0.1.0-pr.42.abc1234
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-*" />
   </ItemGroup>
 </Project>
 ```
+
+> `RuntimeIdentifiers` must be declared in the consumer csproj (NuGet restore can't pick it up from the package's transitive props). The `Microsoft.UI.Reactor` props auto-select an appropriate `RuntimeIdentifier` so `dotnet run` and `dotnet build` work without `-p:Platform=x64`.
 
 The package transitively brings in `Microsoft.WindowsAppSDK` 2.0.0-experimental6, the Roslyn analyzers, and the localization source generator. Defaults like `UseWinUI=true` and `WindowsPackageType=None` are applied automatically by `build/Microsoft.UI.Reactor.props`.
 

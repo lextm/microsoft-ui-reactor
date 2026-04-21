@@ -26,4 +26,26 @@
     <EnableMsixTooling Condition="'$(EnableMsixTooling)' == ''">false</EnableMsixTooling>
   </PropertyGroup>
 
+  <!--
+    `dotnet build` / `dotnet run` inject Platform=AnyCPU as an MSBuild global
+    property, which project-level XML cannot override. WindowsAppSDK self-
+    containment requires a real architecture: it first looks at $(Platform),
+    then falls back to $(RuntimeIdentifier) when Platform=AnyCPU. We therefore
+    default RuntimeIdentifier (which IS settable from props) to the host arch.
+    Consumers can still override by passing -p:RuntimeIdentifier=... or -p:Platform=x64.
+  -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == '' and ('$(Platform)' == '' or '$(Platform)' == 'AnyCPU')">
+    <RuntimeIdentifier Condition="'$(PROCESSOR_ARCHITECTURE)' == 'ARM64'">win-arm64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(PROCESSOR_ARCHITECTURE)' != 'ARM64'">win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!--
+    Pre-populate RuntimeIdentifiers so `restore` produces assets-file targets for
+    every supported arch. Without this, restore only sees the active RID and a
+    later `build -p:Platform=ARM64` would fail with NETSDK1047.
+  -->
+  <PropertyGroup>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">win-x64;win-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
 </Project>
