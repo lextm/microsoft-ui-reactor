@@ -51,15 +51,22 @@ The package transitively brings in `Microsoft.WindowsAppSDK` 2.0.0-experimental6
 
 ## Feeds (during preview)
 
-Until Reactor is on NuGet.org, packages are produced as PR / CI artifacts. Download the `nupkg-*.zip` from a [GitHub Actions run](https://github.com/microsoft/microsoft-ui-reactor/actions) and add it as a local feed:
+Until Reactor is on NuGet.org, packages are produced as PR / CI artifacts. Either download the `nupkg-*.zip` from a [GitHub Actions run](https://github.com/microsoft/microsoft-ui-reactor/actions), or build them locally from a Reactor enlistment:
+
+```powershell
+# from the repo root
+.\pack.ps1                              # produces 0.1.0-local nupkgs in artifacts\nupkg
+.\pack.ps1 -Version 0.1.0-preview.7     # versioned
+.\pack.ps1 -OutputPath C:\reactor-feed  # write straight into a local feed
+```
+
+Then add the output directory as a NuGet feed:
 
 ```bash
-mkdir C:\reactor-feed
-# extract the .nupkg files into C:\reactor-feed
 dotnet nuget add source C:\reactor-feed --name reactor-local
 ```
 
-Then `dotnet new install Microsoft.UI.Reactor.Templates` and `dotnet add package Microsoft.UI.Reactor` will resolve from the local feed.
+After that, `dotnet new install Microsoft.UI.Reactor.Templates` and `dotnet add package Microsoft.UI.Reactor` will resolve from the local feed.
 
 ## Hello, world
 
