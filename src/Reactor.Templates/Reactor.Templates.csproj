@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Directory.Pack.props" />
+
+  <PropertyGroup>
+    <!--
+      Template packages are non-code, content-only nupkgs that the .NET SDK
+      installs via `dotnet new install`. They target netstandard2.0 because
+      they contain no compiled code; this also keeps `dotnet pack` happy
+      without pulling the WindowsAppSDK chain.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <NoBuild>true</NoBuild>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+
+    <IsPackable>true</IsPackable>
+    <PackageId>Microsoft.UI.Reactor.Templates</PackageId>
+    <Title>Microsoft.UI.Reactor project templates</Title>
+    <Description>`dotnet new` templates for Microsoft.UI.Reactor. Includes the `reactor` template — `dotnet new reactor -n MyApp` scaffolds a minimal WinUI 3 + Reactor application.</Description>
+    <PackageTags>dotnet-new;templates;winui;winui3;reactor</PackageTags>
+
+    <PackageType>Template</PackageType>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <DevelopmentDependency>true</DevelopmentDependency>
+
+    <!-- Templates need .template.config/ and .gitignore preserved verbatim. -->
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+
+    <!-- Template packages contain no managed code, so symbols make no sense. -->
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**" />
+    <Compile Remove="**\*" />
+  </ItemGroup>
+
+</Project>

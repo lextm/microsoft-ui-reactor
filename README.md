@@ -131,27 +131,38 @@ If you're building line-of-business applications:
 
 ### Create a new app
 
+The fastest path is the `dotnet new` template:
+
 ```bash
-dotnet run --project Reactor.Cli -- --create MyApp
+dotnet new install Microsoft.UI.Reactor.Templates
+dotnet new reactor -n MyApp
+cd MyApp
+dotnet run
 ```
 
-Or create a `.csproj` manually:
+That produces a single `Program.cs` and a `.csproj` with a single `<PackageReference Include="Microsoft.UI.Reactor" />` — no clone, no source enlistment.
+
+If you're working on Reactor itself and want a sibling project reference instead, build the CLI and use `--from-source`:
+
+```bash
+dotnet run --project src/Reactor.Cli -- --create MyApp --from-source
+```
+
+### Add Reactor to an existing project
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
-    <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental6" />
-    <ProjectReference Include="..\Reactor\Reactor.csproj" />
+    <PackageReference Include="Microsoft.UI.Reactor" Version="0.1.0-*" />
   </ItemGroup>
 </Project>
 ```
+
+The package brings in `Microsoft.WindowsAppSDK` transitively along with the Roslyn analyzers and the localization source generator. WinUI defaults (`UseWinUI=true`, `WindowsPackageType=None`) are applied automatically. See [docs/guide/install.md](docs/guide/install.md) for feeds and templates.
 
 A single `App.cs` is the whole program:
 

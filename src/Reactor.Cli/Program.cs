@@ -38,10 +38,13 @@ if (arg == "--create")
     if (args.Length < 2)
     {
         Console.Error.WriteLine("Error: --create requires a project name.");
-        Console.Error.WriteLine("Usage: mur --create <ProjectName>");
+        Console.Error.WriteLine("Usage: mur --create <ProjectName> [--from-source] [--reactor-version <version>]");
         return 1;
     }
-    return CreateProject(args[1]);
+    var fromSource = args.Skip(2).Any(a => a.Equals("--from-source", StringComparison.OrdinalIgnoreCase));
+    var versionIdx = Array.FindIndex(args, a => a.Equals("--reactor-version", StringComparison.OrdinalIgnoreCase));
+    var reactorVersion = (versionIdx >= 0 && versionIdx + 1 < args.Length) ? args[versionIdx + 1] : "0.1.0-*";
+    return CreateProject(args[1], fromSource, reactorVersion);
 }
 
 if (arg == "loc")
@@ -78,7 +81,8 @@ void ShowHelp()
     Console.WriteLine("  --help, -h       Show this help message");
     Console.WriteLine("  --version, -v    Show version information");
     Console.WriteLine("  --skill          Print the SKILL.md AI reference to stdout");
-    Console.WriteLine("  --create <name>  Scaffold a new Reactor project");
+    Console.WriteLine("  --create <name> [--from-source] [--reactor-version <v>]");
+    Console.WriteLine("                   Scaffold a new Reactor project (PackageReference by default)");
     Console.WriteLine();
     Console.WriteLine("Commands:");
     Console.WriteLine("  loc extract      Extract localizable strings from source files");
@@ -103,7 +107,7 @@ int ShowSkill()
     return 0;
 }
 
-int CreateProject(string name)
+int CreateProject(string name, bool fromSource, string reactorVersion)
 {
     if (!global::System.Text.RegularExpressions.Regex.IsMatch(name, @"^[A-Za-z_][A-Za-z0-9_\.]*$"))
     {
@@ -125,8 +129,8 @@ int CreateProject(string name)
     var patchGuid = Guid.NewGuid().ToString("D").ToUpperInvariant();
 
     File.WriteAllText(Path.Combine(dir, "Program.cs"), GenerateProgram(name));
-    File.WriteAllText(Path.Combine(dir, $"{name}.csproj"), GenerateCsproj());
-    File.WriteAllText(Path.Combine(dir, $"{name}.sln"), GenerateSln(name, appGuid, patchGuid));
+    File.WriteAllText(Path.Combine(dir, $"{name}.csproj"), GenerateCsproj(fromSource, reactorVersion));
+    File.WriteAllText(Path.Combine(dir, $"{name}.sln"), GenerateSln(name, appGuid, patchGuid, fromSource));
 
     Console.WriteLine($"Created Reactor project '{name}' in .{Path.DirectorySeparatorChar}{name}{Path.DirectorySeparatorChar}");
     Console.WriteLine();
@@ -135,10 +139,19 @@ int CreateProject(string name)
     Console.WriteLine($"    {name}{Path.DirectorySeparatorChar}{name}.csproj");
     Console.WriteLine($"    {name}{Path.DirectorySeparatorChar}Program.cs");
     Console.WriteLine();
-    Console.WriteLine("NOTE: The generated .sln assumes this project is a sibling of the Reactor directory:");
-    Console.WriteLine($"    parent/");
-    Console.WriteLine($"      Reactor/Reactor.csproj");
-    Console.WriteLine($"      {name}/{name}.csproj");
+    if (fromSource)
+    {
+        Console.WriteLine("Mode: --from-source (sibling ProjectReference to ../Reactor/Reactor.csproj).");
+        Console.WriteLine("NOTE: The generated .sln assumes this project is a sibling of the Reactor directory:");
+        Console.WriteLine($"    parent/");
+        Console.WriteLine($"      Reactor/Reactor.csproj");
+        Console.WriteLine($"      {name}/{name}.csproj");
+    }
+    else
+    {
+        Console.WriteLine($"Mode: NuGet PackageReference to Microsoft.UI.Reactor (version {reactorVersion}).");
+        Console.WriteLine("If you are using a private feed, ensure your nuget.config points at it.");
+    }
     Console.WriteLine();
     Console.WriteLine("To build and run:");
     Console.WriteLine($"    cd {name}");
@@ -182,8 +195,20 @@ string GenerateProgram(string name) =>
     }
     """;
 
-string GenerateCsproj() =>
-    """
+string GenerateCsproj(bool fromSource, string reactorVersion)
+{
+    var reactorRef = fromSource
+        ? "<ProjectReference Include=\"..\\Reactor\\Reactor.csproj\" />"
+        : $"<PackageReference Include=\"Microsoft.UI.Reactor\" Version=\"{reactorVersion}\" />";
+
+    // The WindowsAppSDK PackageReference is only needed in --from-source mode.
+    // Microsoft.UI.Reactor declares it as a transitive dependency, so package
+    // consumers don't need to (and shouldn't) repeat it here.
+    var winAppSdkRef = fromSource
+        ? "\n    <PackageReference Include=\"Microsoft.WindowsAppSDK\" Version=\"2.0.0-experimental6\" />"
+        : "";
+
+    return $"""
     <Project Sdk="Microsoft.NET.Sdk">
       <PropertyGroup>
         <OutputType>WinExe</OutputType>
@@ -195,21 +220,19 @@ string GenerateCsproj() =>
         <WindowsPackageType>None</WindowsPackageType>
         <WindowsSdkPackageVersion>10.0.22621.52</WindowsSdkPackageVersion>
       </PropertyGroup>
-      <ItemGroup>
-        <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental6" />
-      </ItemGroup>
-      <ItemGroup>
-        <ProjectReference Include="..\Reactor\Reactor.csproj" />
+      <ItemGroup>{winAppSdkRef}
+        {reactorRef}
       </ItemGroup>
     </Project>
     """;
+}
 
 /// <summary>
-/// Generates a .sln that references Reactor via a relative project path.
-/// This assumes the new project directory is a sibling of the Reactor/ directory.
-/// When Reactor is published as a NuGet package, this should switch to a PackageReference.
+/// Generates a .sln. In the default mode (PackageReference), only the new
+/// project is included. In --from-source mode, a sibling project reference
+/// to ../Reactor/Reactor.csproj is added so contributors can edit both.
 /// </summary>
-string GenerateSln(string name, string appGuid, string patchGuid)
+string GenerateSln(string name, string appGuid, string patchGuid, bool fromSource)
 {
     const string csharpGuid = "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}";
     var ag = $"{{{appGuid}}}";
@@ -217,7 +240,8 @@ string GenerateSln(string name, string appGuid, string patchGuid)
     var t1 = "\t";
     var t2 = "\t\t";
 
-    return string.Join("\r\n",
+    var lines = new List<string>
+    {
         "",
         "Microsoft Visual Studio Solution File, Format Version 12.00",
         "# Visual Studio Version 18",
@@ -225,8 +249,16 @@ string GenerateSln(string name, string appGuid, string patchGuid)
         "MinimumVisualStudioVersion = 10.0.40219.1",
         $"Project(\"{csharpGuid}\") = \"{name}\", \"{name}.csproj\", \"{ag}\"",
         "EndProject",
-        $"Project(\"{csharpGuid}\") = \"Reactor\", \"..\\Reactor\\Reactor.csproj\", \"{pg}\"",
-        "EndProject",
+    };
+
+    if (fromSource)
+    {
+        lines.Add($"Project(\"{csharpGuid}\") = \"Reactor\", \"..\\Reactor\\Reactor.csproj\", \"{pg}\"");
+        lines.Add("EndProject");
+    }
+
+    lines.AddRange(new[]
+    {
         "Global",
         $"{t1}GlobalSection(SolutionConfigurationPlatforms) = preSolution",
         $"{t2}Debug|ARM64 = Debug|ARM64",
@@ -243,18 +275,32 @@ string GenerateSln(string name, string appGuid, string patchGuid)
         $"{t2}{ag}.Release|ARM64.Build.0 = Release|ARM64",
         $"{t2}{ag}.Release|x64.ActiveCfg = Release|x64",
         $"{t2}{ag}.Release|x64.Build.0 = Release|x64",
-        $"{t2}{pg}.Debug|ARM64.ActiveCfg = Debug|ARM64",
-        $"{t2}{pg}.Debug|ARM64.Build.0 = Debug|ARM64",
-        $"{t2}{pg}.Debug|x64.ActiveCfg = Debug|x64",
-        $"{t2}{pg}.Debug|x64.Build.0 = Debug|x64",
-        $"{t2}{pg}.Release|ARM64.ActiveCfg = Release|ARM64",
-        $"{t2}{pg}.Release|ARM64.Build.0 = Release|ARM64",
-        $"{t2}{pg}.Release|x64.ActiveCfg = Release|x64",
-        $"{t2}{pg}.Release|x64.Build.0 = Release|x64",
+    });
+
+    if (fromSource)
+    {
+        lines.AddRange(new[]
+        {
+            $"{t2}{pg}.Debug|ARM64.ActiveCfg = Debug|ARM64",
+            $"{t2}{pg}.Debug|ARM64.Build.0 = Debug|ARM64",
+            $"{t2}{pg}.Debug|x64.ActiveCfg = Debug|x64",
+            $"{t2}{pg}.Debug|x64.Build.0 = Debug|x64",
+            $"{t2}{pg}.Release|ARM64.ActiveCfg = Release|ARM64",
+            $"{t2}{pg}.Release|ARM64.Build.0 = Release|ARM64",
+            $"{t2}{pg}.Release|x64.ActiveCfg = Release|x64",
+            $"{t2}{pg}.Release|x64.Build.0 = Release|x64",
+        });
+    }
+
+    lines.AddRange(new[]
+    {
         $"{t1}EndGlobalSection",
         $"{t1}GlobalSection(SolutionProperties) = preSolution",
         $"{t2}HideSolutionNode = FALSE",
         $"{t1}EndGlobalSection",
         "EndGlobal",
-        "");
+        "",
+    });
+
+    return string.Join("\r\n", lines);
 }

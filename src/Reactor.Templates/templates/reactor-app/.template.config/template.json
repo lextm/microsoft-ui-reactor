@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Microsoft",
+  "classifications": [ "Windows", "WinUI", "Desktop", "Reactor" ],
+  "identity": "Microsoft.UI.Reactor.Templates.App.CSharp",
+  "name": "Microsoft.UI.Reactor App",
+  "description": "A minimal WinUI 3 desktop app built with Microsoft.UI.Reactor — declarative, hooks-based, no XAML.",
+  "shortName": "reactor",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "Reactor.AppTemplate",
+  "preferNameDirectory": true,
+  "symbols": {
+    "ReactorVersion": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "0.1.0-*",
+      "replaces": "REACTOR_PACKAGE_VERSION",
+      "description": "Version of Microsoft.UI.Reactor to reference. Defaults to the latest 0.1.x prerelease."
+    },
+    "Framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "net9.0-windows10.0.22621.0",
+      "replaces": "REACTOR_TFM",
+      "choices": [
+        { "choice": "net9.0-windows10.0.22621.0", "description": ".NET 9 + Windows SDK 22621" }
+      ]
+    }
+  },
+  "primaryOutputs": [
+    { "path": "Reactor.AppTemplate.csproj" }
+  ]
+}

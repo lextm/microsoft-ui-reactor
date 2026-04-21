@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(MSBuildThisFileDirectory)..\..\Directory.Pack.props" Condition="'$(IsPackable)' != 'false'" />
+
   <PropertyGroup>
     <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
     <Platforms>x64;ARM64</Platforms>
@@ -12,6 +14,20 @@
     <!-- Override Directory.Build.props (true) — this library should not bundle
          the WinUI runtime; the consuming executable controls self-containedness. -->
     <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Suppress missing-XML-doc warnings for now; we have a lot of public surface. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       NuGet packaging — Microsoft.UI.Reactor
+       ═══════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Microsoft.UI.Reactor</PackageId>
+    <Title>Microsoft.UI.Reactor</Title>
+    <Description>A declarative, component-based C# framework for building WinUI 3 desktop apps. Provides a virtual element tree and reconciler, hooks-based state, a typed C# DSL replacing XAML, and higher-level building blocks (flex layout, charting, navigation, theming, localization).</Description>
+    <PackageTags>winui;winui3;reactor;ui;declarative;mvu;hooks;dsl;windows</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,10 +42,33 @@
     <PackageReference Include="MessageFormat" Version="8.0.0" />
   </ItemGroup>
 
+  <!--
+    Reference the analyzer + source-generator projects so they build before
+    this project, then bundle their DLLs inside the framework nupkg under
+    analyzers/dotnet/cs/ (the location NuGet probes for Roslyn components).
+    ReferenceOutputAssembly=false keeps them out of the framework's compile
+    references; OutputItemType=Analyzer lights them up during this project's
+    own build so generators run on Reactor.dll itself too.
+  -->
   <ItemGroup>
     <ProjectReference Include="..\Reactor.Localization.Generator\Reactor.Localization.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\Reactor.Analyzers\Reactor.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\Reactor.Analyzers\bin\$(Platform)\$(Configuration)\netstandard2.0\Reactor.Analyzers.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)..\Reactor.Localization.Generator\bin\$(Platform)\$(Configuration)\netstandard2.0\Reactor.Localization.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <!-- Consumer-facing props imported automatically by NuGet from build/. -->
+  <ItemGroup>
+    <None Include="build\Microsoft.UI.Reactor.props" Pack="true" PackagePath="build\" />
   </ItemGroup>
 
   <!-- ═══════════════════════════════════════════════════════════════════

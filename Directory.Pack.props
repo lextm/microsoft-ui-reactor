@@ -1,0 +1,58 @@
+<Project>
+
+  <!--
+    Shared NuGet packaging metadata. Imported explicitly by projects that
+    set <IsPackable>true</IsPackable> (currently src/Reactor and
+    src/Reactor.Templates). Centralizes authors, repo URLs, license, README,
+    SourceLink, symbols, and reproducible-build settings so each packable
+    project keeps only the bits that vary (PackageId, Description).
+  -->
+
+  <PropertyGroup>
+    <Authors>Microsoft</Authors>
+    <Company>Microsoft</Company>
+    <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
+    <Product>Microsoft.UI.Reactor</Product>
+
+    <PackageProjectUrl>https://github.com/microsoft/microsoft-ui-reactor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/microsoft/microsoft-ui-reactor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!--
+      License: README currently says "Microsoft Internal". The public phase
+      (P3 in spec 022) requires resolving this — almost certainly to MIT —
+      before any push to a public feed. Until then we ship the LICENSE file
+      as-is rather than asserting an SPDX expression.
+    -->
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <!-- SourceLink + symbols. Cheap to produce, big debugging win for consumers. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- Reproducible builds when running in CI. -->
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true' or '$(TF_BUILD)' == 'true' or '$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!--
+      Default version. Real builds in CI will override this via MinVer or
+      a -p:Version=… argument. Local `dotnet pack` runs use this fallback
+      so the resulting nupkg is always installable for round-trip testing.
+    -->
+    <Version Condition="'$(Version)' == ''">0.1.0-dev</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE"   Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

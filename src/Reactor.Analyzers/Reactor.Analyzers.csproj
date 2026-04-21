@@ -9,10 +9,12 @@
     <AssemblyName>Reactor.Analyzers</AssemblyName>
     <RootNamespace>Microsoft.UI.Reactor.Analyzers</RootNamespace>
 
-    <!-- NuGet packaging -->
+    <!-- NuGet packaging — analyzers are bundled inside Microsoft.UI.Reactor.nupkg
+         (see src/Reactor/Reactor.csproj). We do not ship a standalone package. -->
     <PackageId>Reactor.Analyzers</PackageId>
     <Description>Roslyn analyzers for Microsoft.UI.Reactor — guides developers toward theme-reactive styling and fluent APIs.</Description>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IsPackable>false</IsPackable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <DevelopmentDependency>true</DevelopmentDependency>
