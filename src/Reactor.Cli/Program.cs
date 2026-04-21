@@ -190,7 +190,11 @@ string GenerateProgram(string name) =>
     {
         public override Element Render()
         {
-            return TextBlock("Hello, World!").FontSize(24).Margin(20);
+            var titleBar = TitleBar("{{name}}").Flex(shrink: 0);
+            var content = Border(
+                TextBlock("Hello, World!").FontSize(24)
+            ).Padding(24);
+            return FlexColumn(titleBar, content);
         }
     }
     """;
