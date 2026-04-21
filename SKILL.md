@@ -35,9 +35,36 @@ cd MyApp
 dotnet run
 ```
 
-If you'd rather hand-author a `.csproj`, copy this exactly:
+### From a local NuGet feed (preview / from-source)
 
-### .csproj (copy exactly)
+While Reactor is pre-release the packages may not be on nuget.org. If you have a folder of `.nupkg` files (e.g. `pack.ps1` output, a CI artifact, or a network share):
+
+```powershell
+# 1. Install the template directly from the .nupkg path (no feed config needed):
+dotnet new install <feed>\Microsoft.UI.Reactor.Templates.<version>.nupkg
+
+# 2. Drop a nuget.config in the new app's folder so `dotnet restore` finds the
+#    runtime package. The template does NOT generate one — the consumer chooses
+#    where Microsoft.UI.Reactor comes from.
+dotnet new reactor -n MyApp
+cd MyApp
+@'
+<configuration>
+  <packageSources>
+    <add key="reactor-local" value="<feed>" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+</configuration>
+'@ | Out-File -Encoding utf8 nuget.config
+
+# 3. Pin the PackageReference Version to whatever's in the feed (the template
+#    defaults to 0.1.0-* which matches 0.1.0-local from pack.ps1):
+dotnet run
+```
+
+`<feed>` is any absolute folder path containing `*.nupkg` files. The `nuget.config` only needs to live anywhere up the directory tree from the project. See [`docs/guide/install.md`](docs/guide/install.md) for more deployment options.
+
+### Hand-authored .csproj (copy exactly)
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
