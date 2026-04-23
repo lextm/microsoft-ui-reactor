@@ -123,10 +123,10 @@ public sealed partial class Reconciler
                 => UpdateCheckBox(n, cb),
             (RadioButtonElement, RadioButtonElement n, WinUI.RadioButton rb)
                 => UpdateRadioButton(n, rb),
-            (RadioButtonsElement, RadioButtonsElement, WinUI.RadioButtons)
-                => Mount(newEl, requestRerender),
-            (ComboBoxElement, ComboBoxElement, WinUI.ComboBox)
-                => Mount(newEl, requestRerender),
+            (RadioButtonsElement o, RadioButtonsElement n, WinUI.RadioButtons rbs)
+                => UpdateRadioButtons(o, n, rbs),
+            (ComboBoxElement o, ComboBoxElement n, WinUI.ComboBox cb)
+                => UpdateComboBox(o, n, cb, requestRerender),
             (SliderElement, SliderElement n, WinUI.Slider s)
                 => UpdateSlider(n, s),
             (ToggleSwitchElement, ToggleSwitchElement n, WinUI.ToggleSwitch ts)
@@ -161,20 +161,20 @@ public sealed partial class Reconciler
                 => UpdateBorder(o, n, b, newEl, requestRerender),
             (ExpanderElement o, ExpanderElement n, WinUI.Expander exp)
                 => UpdateExpander(o, n, exp, requestRerender),
-            (SplitViewElement, SplitViewElement, WinUI.SplitView)
-                => Mount(newEl, requestRerender),
+            (SplitViewElement o, SplitViewElement n, WinUI.SplitView sv)
+                => UpdateSplitView(o, n, sv, requestRerender),
             (NavigationHostElement o, NavigationHostElement n, WinUI.Grid navGrid)
                 => UpdateNavigationHost(o, n, navGrid, requestRerender),
             (NavigationViewElement o, NavigationViewElement n, WinUI.NavigationView nv)
                 => UpdateNavigationView(o, n, nv, requestRerender),
             (TitleBarElement o, TitleBarElement n, WinUI.TitleBar tb)
                 => UpdateTitleBar(o, n, tb, requestRerender),
-            (TabViewElement, TabViewElement, WinUI.TabView)
-                => Mount(newEl, requestRerender),
+            (TabViewElement o, TabViewElement n, WinUI.TabView tv)
+                => UpdateTabView(o, n, tv, requestRerender),
             (BreadcrumbBarElement, BreadcrumbBarElement n, WinUI.BreadcrumbBar bcb)
                 => UpdateBreadcrumbBar(n, bcb),
-            (PivotElement, PivotElement, WinUI.Pivot)
-                => Mount(newEl, requestRerender),
+            (PivotElement o, PivotElement n, WinUI.Pivot pv)
+                => UpdatePivot(o, n, pv, requestRerender),
             (ListViewElement o, ListViewElement n, WinUI.ListView lv)
                 => UpdateListView(o, n, lv, requestRerender),
             (GridViewElement o, GridViewElement n, WinUI.GridView gv)
@@ -219,36 +219,36 @@ public sealed partial class Reconciler
                 => UpdateLine(n, l),
             (PathElement o, PathElement n, WinShapes.Path p)
                 => UpdatePath(o, n, p),
-            (RelativePanelElement, RelativePanelElement, WinUI.RelativePanel)
-                => Mount(newEl, requestRerender),
+            (RelativePanelElement o, RelativePanelElement n, WinUI.RelativePanel rp)
+                => UpdateRelativePanel(o, n, rp, requestRerender),
             (MediaPlayerElementElement, MediaPlayerElementElement n, WinUI.MediaPlayerElement mpe)
                 => UpdateMediaPlayerElement(n, mpe),
             (AnimatedVisualPlayerElement, AnimatedVisualPlayerElement n, WinUI.AnimatedVisualPlayer avp)
                 => UpdateAnimatedVisualPlayer(n, avp),
-            (SemanticZoomElement, SemanticZoomElement, WinUI.SemanticZoom)
-                => Mount(newEl, requestRerender),
-            (ListBoxElement, ListBoxElement, WinUI.ListBox)
-                => Mount(newEl, requestRerender),
-            (SelectorBarElement, SelectorBarElement, WinUI.SelectorBar)
-                => Mount(newEl, requestRerender),
+            (SemanticZoomElement o, SemanticZoomElement n, WinUI.SemanticZoom sz)
+                => UpdateSemanticZoom(o, n, sz, requestRerender),
+            (ListBoxElement o, ListBoxElement n, WinUI.ListBox lbx)
+                => UpdateListBox(o, n, lbx),
+            (SelectorBarElement o, SelectorBarElement n, WinUI.SelectorBar sbr)
+                => UpdateSelectorBar(o, n, sbr),
             (PipsPagerElement, PipsPagerElement n, WinUI.PipsPager pp)
                 => UpdatePipsPager(n, pp),
             (AnnotatedScrollBarElement, AnnotatedScrollBarElement n, WinUI.AnnotatedScrollBar asb)
                 => UpdateAnnotatedScrollBar(n, asb),
-            (PopupElement, PopupElement, WinUI.StackPanel)
-                => Mount(newEl, requestRerender),
-            (RefreshContainerElement, RefreshContainerElement, WinUI.RefreshContainer)
-                => Mount(newEl, requestRerender),
-            (CommandBarFlyoutElement, CommandBarFlyoutElement, _)
-                => Mount(newEl, requestRerender),
+            (PopupElement o, PopupElement n, WinUI.StackPanel pwrap)
+                => UpdatePopup(o, n, pwrap, requestRerender),
+            (RefreshContainerElement o, RefreshContainerElement n, WinUI.RefreshContainer rc)
+                => UpdateRefreshContainer(o, n, rc, requestRerender),
+            (CommandBarFlyoutElement o, CommandBarFlyoutElement n, FrameworkElement cbfTarget)
+                => UpdateCommandBarFlyout(o, n, cbfTarget, requestRerender),
             (CalendarViewElement, CalendarViewElement n, WinUI.CalendarView cv)
                 => UpdateCalendarView(n, cv),
-            (SwipeControlElement, SwipeControlElement, WinUI.SwipeControl)
-                => Mount(newEl, requestRerender),
+            (SwipeControlElement o, SwipeControlElement n, WinUI.SwipeControl swc)
+                => UpdateSwipeControl(o, n, swc, requestRerender),
             (AnimatedIconElement, AnimatedIconElement n, WinUI.AnimatedIcon ai)
                 => UpdateAnimatedIcon(n, ai),
-            (ParallaxViewElement, ParallaxViewElement, WinUI.ParallaxView)
-                => Mount(newEl, requestRerender),
+            (ParallaxViewElement o, ParallaxViewElement n, WinUI.ParallaxView pxv)
+                => UpdateParallaxView(o, n, pxv, requestRerender),
             (MapControlElement, MapControlElement n, WinUI.MapControl mc)
                 => UpdateMapControl(n, mc),
             (FrameElement, FrameElement n, WinUI.Frame f)
@@ -2435,5 +2435,506 @@ public sealed partial class Reconciler
 
         SetElementTag(panel, newSem);
         return null; // updated in place
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Update handlers that previously fell through to Mount. Preserving
+    //  the existing control instance keeps its internal state (selection,
+    //  scroll, focus, pane-open) intact when an unrelated ancestor re-renders.
+    // ════════════════════════════════════════════════════════════════════
+
+    private UIElement? UpdateComboBox(
+        ComboBoxElement o, ComboBoxElement n, WinUI.ComboBox cb, Action requestRerender)
+    {
+        SetElementTag(cb, n);
+        cb.PlaceholderText = n.PlaceholderText ?? "";
+        cb.IsEditable = n.IsEditable;
+        if (n.Header is not null) cb.Header = n.Header;
+
+        // Reconcile items. Two item-source flavors: ItemElements (UIElements,
+        // reconciled positionally) and Items (string[], reset wholesale when
+        // the reference changes). Mode flips require a rebuild.
+        bool oldUsesElements = o.ItemElements is not null;
+        bool newUsesElements = n.ItemElements is not null;
+        if (oldUsesElements != newUsesElements)
+        {
+            // Mode flip — easiest is a clean rebuild of the items collection.
+            // Unmount any UIElement items first so their nodes are cleaned up.
+            for (int i = cb.Items.Count - 1; i >= 0; i--)
+            {
+                if (cb.Items[i] is UIElement ui) Unmount(ui);
+                cb.Items.RemoveAt(i);
+            }
+            if (newUsesElements)
+                foreach (var el in n.ItemElements!) cb.Items.Add(Mount(el, requestRerender));
+            else
+                foreach (var item in n.Items) cb.Items.Add(item);
+        }
+        else if (newUsesElements)
+        {
+            var childCollection = new ItemsControlChildCollection(cb);
+            ChildReconciler.Reconcile(o.ItemElements!, n.ItemElements!, childCollection, this, requestRerender);
+        }
+        else if (!ReferenceEquals(o.Items, n.Items))
+        {
+            // String items — rebuild if the array reference changed. Cheap enough:
+            // these are value objects, no child nodes to unmount.
+            cb.Items.Clear();
+            foreach (var item in n.Items) cb.Items.Add(item);
+        }
+
+        // Selection last — after items are settled so the index is valid.
+        // Suppress the SelectionChanged echo from the programmatic write.
+        if (cb.SelectedIndex != n.SelectedIndex)
+        {
+            ChangeEchoSuppressor.BeginSuppress(cb);
+            cb.SelectedIndex = n.SelectedIndex;
+        }
+
+        ApplySetters(n.Setters, cb);
+        return null;
+    }
+
+    private UIElement? UpdateRadioButtons(
+        RadioButtonsElement o, RadioButtonsElement n, WinUI.RadioButtons rbs)
+    {
+        SetElementTag(rbs, n);
+        if (n.Header is not null) rbs.Header = n.Header;
+
+        // RadioButtons.Items is IList<object> of strings; rebuild only on array change.
+        if (!ReferenceEquals(o.Items, n.Items))
+        {
+            rbs.Items.Clear();
+            foreach (var item in n.Items) rbs.Items.Add(item);
+        }
+
+        if (rbs.SelectedIndex != n.SelectedIndex)
+        {
+            ChangeEchoSuppressor.BeginSuppress(rbs);
+            rbs.SelectedIndex = n.SelectedIndex;
+        }
+
+        ApplySetters(n.Setters, rbs);
+        return null;
+    }
+
+    private UIElement? UpdateSplitView(
+        SplitViewElement o, SplitViewElement n, WinUI.SplitView sv, Action requestRerender)
+    {
+        SetElementTag(sv, n);
+
+        // Pane (optional single child)
+        sv.Pane = ReconcileOptionalChild(o.Pane, n.Pane, sv.Pane as UIElement, requestRerender);
+
+        // Content (optional single child)
+        sv.Content = ReconcileOptionalChild(o.Content, n.Content, sv.Content as UIElement, requestRerender);
+
+        if (sv.IsPaneOpen != n.IsPaneOpen) sv.IsPaneOpen = n.IsPaneOpen;
+        sv.OpenPaneLength = n.OpenPaneLength;
+        sv.CompactPaneLength = n.CompactPaneLength;
+        sv.DisplayMode = n.DisplayMode;
+
+        ApplySetters(n.Setters, sv);
+        return null;
+    }
+
+    private UIElement? UpdateTabView(
+        TabViewElement o, TabViewElement n, WinUI.TabView tv, Action requestRerender)
+    {
+        SetElementTag(tv, n);
+
+        var oldTabs = o.Tabs;
+        var newTabs = n.Tabs;
+        int common = Math.Min(oldTabs.Length, newTabs.Length);
+
+        // Update overlapping tab items in place
+        for (int i = 0; i < common; i++)
+        {
+            if (tv.TabItems[i] is not WinUI.TabViewItem tvi) continue;
+            var oldItem = oldTabs[i];
+            var newItem = newTabs[i];
+
+            if (tvi.Header as string != newItem.Header) tvi.Header = newItem.Header;
+            if (tvi.IsClosable != newItem.IsClosable) tvi.IsClosable = newItem.IsClosable;
+            if (oldItem.Icon != newItem.Icon)
+            {
+                tvi.IconSource = newItem.Icon is not null
+                    ? new WinUI.SymbolIconSource { Symbol = ParseSymbol(newItem.Icon) }
+                    : null;
+            }
+
+            // Reconcile the tab's content child
+            var existingContent = tvi.Content as UIElement;
+            var newContent = Reconcile(oldItem.Content, newItem.Content, existingContent, requestRerender);
+            if (!ReferenceEquals(newContent, existingContent))
+                tvi.Content = newContent;
+        }
+
+        // Remove extra old tabs
+        for (int i = tv.TabItems.Count - 1; i >= newTabs.Length; i--)
+        {
+            if (tv.TabItems[i] is UIElement ui) Unmount(ui);
+            tv.TabItems.RemoveAt(i);
+        }
+
+        // Add new tabs
+        for (int i = oldTabs.Length; i < newTabs.Length; i++)
+        {
+            var tabItem = newTabs[i];
+            var tvi = new WinUI.TabViewItem
+            {
+                Header = tabItem.Header,
+                IsClosable = tabItem.IsClosable,
+                Content = Mount(tabItem.Content, requestRerender),
+            };
+            if (tabItem.Icon is not null)
+                tvi.IconSource = new WinUI.SymbolIconSource { Symbol = ParseSymbol(tabItem.Icon) };
+            tv.TabItems.Add(tvi);
+        }
+
+        tv.IsAddTabButtonVisible = n.IsAddTabButtonVisible;
+
+        // Selection last — suppress the echo from the programmatic write.
+        if (tv.SelectedIndex != n.SelectedIndex)
+        {
+            ChangeEchoSuppressor.BeginSuppress(tv);
+            tv.SelectedIndex = n.SelectedIndex;
+        }
+
+        ApplySetters(n.Setters, tv);
+        return null;
+    }
+
+    private UIElement? UpdatePivot(
+        PivotElement o, PivotElement n, WinUI.Pivot pv, Action requestRerender)
+    {
+        SetElementTag(pv, n);
+        if (n.Title is not null) pv.Title = n.Title;
+
+        var oldItems = o.Items;
+        var newItems = n.Items;
+        int common = Math.Min(oldItems.Length, newItems.Length);
+
+        for (int i = 0; i < common; i++)
+        {
+            if (pv.Items[i] is not WinUI.PivotItem pi) continue;
+            if (pi.Header as string != newItems[i].Header) pi.Header = newItems[i].Header;
+
+            var existingContent = pi.Content as UIElement;
+            var newContent = Reconcile(oldItems[i].Content, newItems[i].Content, existingContent, requestRerender);
+            if (!ReferenceEquals(newContent, existingContent))
+                pi.Content = newContent;
+        }
+
+        for (int i = pv.Items.Count - 1; i >= newItems.Length; i--)
+        {
+            if (pv.Items[i] is UIElement ui) Unmount(ui);
+            pv.Items.RemoveAt(i);
+        }
+
+        for (int i = oldItems.Length; i < newItems.Length; i++)
+        {
+            var pi = new WinUI.PivotItem
+            {
+                Header = newItems[i].Header,
+                Content = Mount(newItems[i].Content, requestRerender),
+            };
+            pv.Items.Add(pi);
+        }
+
+        if (pv.SelectedIndex != n.SelectedIndex)
+        {
+            ChangeEchoSuppressor.BeginSuppress(pv);
+            pv.SelectedIndex = n.SelectedIndex;
+        }
+
+        ApplySetters(n.Setters, pv);
+        return null;
+    }
+
+    private UIElement? UpdateRelativePanel(
+        RelativePanelElement o, RelativePanelElement n, WinUI.RelativePanel rp, Action requestRerender)
+    {
+        SetElementTag(rp, n);
+
+        var childCollection = new PanelChildCollection(rp);
+        ChildReconciler.Reconcile(o.Children, n.Children, childCollection, this, requestRerender);
+
+        // Re-apply RelativePanel attached properties after the child set is settled,
+        // resolving name refs against the current child collection.
+        var nameMap = new Dictionary<string, UIElement>();
+        for (int i = 0; i < rp.Children.Count; i++)
+        {
+            var ctrl = rp.Children[i];
+            if (ctrl is FrameworkElement fe && fe.Tag is Element el)
+            {
+                var rpa = el.GetAttached<RelativePanelAttached>();
+                if (rpa is not null)
+                {
+                    fe.Name = rpa.Name;
+                    nameMap[rpa.Name] = ctrl;
+                }
+            }
+        }
+        foreach (var child in n.Children)
+        {
+            var rpa = child.GetAttached<RelativePanelAttached>();
+            if (rpa is null) continue;
+            if (!nameMap.TryGetValue(rpa.Name, out var ctrl)) continue;
+            if (rpa.RightOf is not null && nameMap.TryGetValue(rpa.RightOf, out var rightOf))
+                WinUI.RelativePanel.SetRightOf(ctrl, rightOf);
+            if (rpa.Below is not null && nameMap.TryGetValue(rpa.Below, out var below))
+                WinUI.RelativePanel.SetBelow(ctrl, below);
+            if (rpa.LeftOf is not null && nameMap.TryGetValue(rpa.LeftOf, out var leftOf))
+                WinUI.RelativePanel.SetLeftOf(ctrl, leftOf);
+            if (rpa.Above is not null && nameMap.TryGetValue(rpa.Above, out var above))
+                WinUI.RelativePanel.SetAbove(ctrl, above);
+            if (rpa.AlignLeftWith is not null && nameMap.TryGetValue(rpa.AlignLeftWith, out var alw))
+                WinUI.RelativePanel.SetAlignLeftWith(ctrl, alw);
+            if (rpa.AlignRightWith is not null && nameMap.TryGetValue(rpa.AlignRightWith, out var arw))
+                WinUI.RelativePanel.SetAlignRightWith(ctrl, arw);
+            if (rpa.AlignTopWith is not null && nameMap.TryGetValue(rpa.AlignTopWith, out var atw))
+                WinUI.RelativePanel.SetAlignTopWith(ctrl, atw);
+            if (rpa.AlignBottomWith is not null && nameMap.TryGetValue(rpa.AlignBottomWith, out var abw))
+                WinUI.RelativePanel.SetAlignBottomWith(ctrl, abw);
+            if (rpa.AlignHorizontalCenterWith is not null && nameMap.TryGetValue(rpa.AlignHorizontalCenterWith, out var ahcw))
+                WinUI.RelativePanel.SetAlignHorizontalCenterWith(ctrl, ahcw);
+            if (rpa.AlignVerticalCenterWith is not null && nameMap.TryGetValue(rpa.AlignVerticalCenterWith, out var avcw))
+                WinUI.RelativePanel.SetAlignVerticalCenterWith(ctrl, avcw);
+            WinUI.RelativePanel.SetAlignLeftWithPanel(ctrl, rpa.AlignLeftWithPanel);
+            WinUI.RelativePanel.SetAlignRightWithPanel(ctrl, rpa.AlignRightWithPanel);
+            WinUI.RelativePanel.SetAlignTopWithPanel(ctrl, rpa.AlignTopWithPanel);
+            WinUI.RelativePanel.SetAlignBottomWithPanel(ctrl, rpa.AlignBottomWithPanel);
+            WinUI.RelativePanel.SetAlignHorizontalCenterWithPanel(ctrl, rpa.AlignHorizontalCenterWithPanel);
+            WinUI.RelativePanel.SetAlignVerticalCenterWithPanel(ctrl, rpa.AlignVerticalCenterWithPanel);
+        }
+
+        ApplySetters(n.Setters, rp);
+        return null;
+    }
+
+    private UIElement? UpdateSemanticZoom(
+        SemanticZoomElement o, SemanticZoomElement n, WinUI.SemanticZoom sz, Action requestRerender)
+    {
+        SetElementTag(sz, n);
+
+        // ZoomedInView
+        var existingIn = sz.ZoomedInView as UIElement;
+        var newIn = Reconcile(o.ZoomedInView, n.ZoomedInView, existingIn, requestRerender);
+        if (!ReferenceEquals(newIn, existingIn) && newIn is ISemanticZoomInformation szi)
+            sz.ZoomedInView = szi;
+
+        // ZoomedOutView
+        var existingOut = sz.ZoomedOutView as UIElement;
+        var newOut = Reconcile(o.ZoomedOutView, n.ZoomedOutView, existingOut, requestRerender);
+        if (!ReferenceEquals(newOut, existingOut) && newOut is ISemanticZoomInformation szo)
+            sz.ZoomedOutView = szo;
+
+        ApplySetters(n.Setters, sz);
+        return null;
+    }
+
+    private UIElement? UpdateListBox(
+        ListBoxElement o, ListBoxElement n, WinUI.ListBox lb)
+    {
+        SetElementTag(lb, n);
+
+        if (!ReferenceEquals(o.Items, n.Items))
+        {
+            lb.Items.Clear();
+            foreach (var item in n.Items) lb.Items.Add(item);
+        }
+
+        if (lb.SelectedIndex != n.SelectedIndex)
+        {
+            ChangeEchoSuppressor.BeginSuppress(lb);
+            lb.SelectedIndex = n.SelectedIndex;
+        }
+
+        ApplySetters(n.Setters, lb);
+        return null;
+    }
+
+    private UIElement? UpdateSelectorBar(
+        SelectorBarElement o, SelectorBarElement n, WinUI.SelectorBar sb)
+    {
+        SetElementTag(sb, n);
+
+        var oldItems = o.Items;
+        var newItems = n.Items;
+        int common = Math.Min(oldItems.Length, newItems.Length);
+
+        for (int i = 0; i < common; i++)
+        {
+            if (sb.Items[i] is not WinUI.SelectorBarItem sbi) continue;
+            if (sbi.Text != newItems[i].Text) sbi.Text = newItems[i].Text;
+            if (oldItems[i].Icon != newItems[i].Icon)
+            {
+                sbi.Icon = newItems[i].Icon is not null
+                    ? new WinUI.SymbolIcon(ParseSymbol(newItems[i].Icon!))
+                    : null;
+            }
+        }
+        for (int i = sb.Items.Count - 1; i >= newItems.Length; i--)
+            sb.Items.RemoveAt(i);
+        for (int i = oldItems.Length; i < newItems.Length; i++)
+        {
+            var sbi = new WinUI.SelectorBarItem { Text = newItems[i].Text };
+            if (newItems[i].Icon is not null)
+                sbi.Icon = new WinUI.SymbolIcon(ParseSymbol(newItems[i].Icon!));
+            sb.Items.Add(sbi);
+        }
+
+        // SelectedItem by index — suppress SelectionChanged echo.
+        WinUI.SelectorBarItem? desired =
+            (n.SelectedIndex >= 0 && n.SelectedIndex < sb.Items.Count)
+                ? sb.Items[n.SelectedIndex] as WinUI.SelectorBarItem
+                : null;
+        if (!ReferenceEquals(sb.SelectedItem, desired))
+        {
+            ChangeEchoSuppressor.BeginSuppress(sb);
+            sb.SelectedItem = desired;
+        }
+
+        ApplySetters(n.Setters, sb);
+        return null;
+    }
+
+    private UIElement? UpdatePopup(
+        PopupElement o, PopupElement n, WinUI.StackPanel wrapper, Action requestRerender)
+    {
+        SetElementTag(wrapper, n);
+        // The real Popup lives inside the wrapper as its first (and only) child.
+        if (wrapper.Children.Count == 0 || wrapper.Children[0] is not WinPrim.Popup popup)
+            return Mount(n, requestRerender);
+
+        // Reconcile popup.Child
+        var existingChild = popup.Child;
+        var newChild = Reconcile(o.Child, n.Child, existingChild, requestRerender);
+        if (!ReferenceEquals(newChild, existingChild))
+            popup.Child = newChild;
+
+        if (popup.IsOpen != n.IsOpen) popup.IsOpen = n.IsOpen;
+        popup.IsLightDismissEnabled = n.IsLightDismissEnabled;
+        popup.HorizontalOffset = n.HorizontalOffset;
+        popup.VerticalOffset = n.VerticalOffset;
+
+        ApplySetters(n.Setters, popup);
+        return null;
+    }
+
+    private UIElement? UpdateRefreshContainer(
+        RefreshContainerElement o, RefreshContainerElement n, WinUI.RefreshContainer rc, Action requestRerender)
+    {
+        SetElementTag(rc, n);
+        var existing = rc.Content as UIElement;
+        var newContent = Reconcile(o.Content, n.Content, existing, requestRerender);
+        if (!ReferenceEquals(newContent, existing))
+            rc.Content = newContent;
+        ApplySetters(n.Setters, rc);
+        return null;
+    }
+
+    private UIElement? UpdateCommandBarFlyout(
+        CommandBarFlyoutElement o, CommandBarFlyoutElement n, FrameworkElement target, Action requestRerender)
+    {
+        // Target element: reconcile in place.
+        var targetReplacement = Update(o.Target, n.Target, target, requestRerender);
+        var finalTarget = (targetReplacement as FrameworkElement) ?? target;
+
+        // Primary / secondary command arrays aren't structurally reconcilable
+        // (they're AppBarItemBase with embedded Action callbacks), so rebuild
+        // the flyout only when the arrays differ by reference OR placement changed.
+        bool rebuildFlyout =
+            !ReferenceEquals(o.PrimaryCommands, n.PrimaryCommands) ||
+            !ReferenceEquals(o.SecondaryCommands, n.SecondaryCommands) ||
+            o.Placement != n.Placement;
+
+        if (rebuildFlyout)
+        {
+            var flyout = new WinUI.CommandBarFlyout { Placement = n.Placement };
+            if (n.PrimaryCommands is not null)
+                foreach (var cmd in n.PrimaryCommands) flyout.PrimaryCommands.Add(CreateAppBarItem(cmd));
+            if (n.SecondaryCommands is not null)
+                foreach (var cmd in n.SecondaryCommands) flyout.SecondaryCommands.Add(CreateAppBarItem(cmd));
+            ApplySetters(n.Setters, flyout);
+            WinPrim.FlyoutBase.SetAttachedFlyout(finalTarget, flyout);
+        }
+
+        SetElementTag(finalTarget, n);
+        return targetReplacement; // non-null only if the target control itself was replaced
+    }
+
+    private UIElement? UpdateSwipeControl(
+        SwipeControlElement o, SwipeControlElement n, WinUI.SwipeControl sc, Action requestRerender)
+    {
+        SetElementTag(sc, n);
+
+        var existing = sc.Content as UIElement;
+        var newContent = Reconcile(o.Content, n.Content, existing, requestRerender);
+        if (!ReferenceEquals(newContent, existing))
+            sc.Content = newContent;
+
+        // Swipe items can't be diffed (action callbacks); rebuild on reference change.
+        if (!ReferenceEquals(o.LeftItems, n.LeftItems) || o.LeftItemsMode != n.LeftItemsMode)
+        {
+            if (n.LeftItems is { Length: > 0 })
+            {
+                var left = new SwipeItems { Mode = n.LeftItemsMode };
+                foreach (var item in n.LeftItems) left.Add(CreateSwipeItem(item));
+                sc.LeftItems = left;
+            }
+            else sc.LeftItems = null;
+        }
+        if (!ReferenceEquals(o.RightItems, n.RightItems) || o.RightItemsMode != n.RightItemsMode)
+        {
+            if (n.RightItems is { Length: > 0 })
+            {
+                var right = new SwipeItems { Mode = n.RightItemsMode };
+                foreach (var item in n.RightItems) right.Add(CreateSwipeItem(item));
+                sc.RightItems = right;
+            }
+            else sc.RightItems = null;
+        }
+
+        ApplySetters(n.Setters, sc);
+        return null;
+    }
+
+    private UIElement? UpdateParallaxView(
+        ParallaxViewElement o, ParallaxViewElement n, WinUI.ParallaxView pv, Action requestRerender)
+    {
+        pv.VerticalShift = n.VerticalShift;
+        pv.HorizontalShift = n.HorizontalShift;
+        var existing = pv.Child;
+        var newChild = Reconcile(o.Child, n.Child, existing, requestRerender);
+        if (!ReferenceEquals(newChild, existing))
+            pv.Child = newChild;
+        ApplySetters(n.Setters, pv);
+        return null;
+    }
+
+    /// <summary>
+    /// Reconciles an optional single child stored as a property (e.g. SplitView.Pane,
+    /// SplitView.Content). Returns the UIElement that should be assigned back to the
+    /// property; may be the same reference (patched in place) or a fresh mount.
+    /// </summary>
+    private UIElement? ReconcileOptionalChild(
+        Element? oldChild, Element? newChild, UIElement? existing, Action requestRerender)
+    {
+        if (newChild is null)
+        {
+            if (existing is not null) Unmount(existing);
+            return null;
+        }
+        if (existing is null)
+            return Mount(newChild, requestRerender);
+        if (oldChild is null)
+        {
+            // Prior render had no child — existing was something else; remount.
+            Unmount(existing);
+            return Mount(newChild, requestRerender);
+        }
+        return Reconcile(oldChild, newChild, existing, requestRerender);
     }
 }

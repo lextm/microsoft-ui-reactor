@@ -1108,6 +1108,7 @@ public sealed partial class Reconciler
         tv.SelectionChanged += (s, _) =>
         {
             var t = (WinUI.TabView)s!;
+            if (ChangeEchoSuppressor.ShouldSuppress(t)) return;
             (GetElementTag(t) as TabViewElement)?.OnSelectionChanged?.Invoke(t.SelectedIndex);
         };
         tv.TabCloseRequested += (s, args) =>
@@ -1148,6 +1149,7 @@ public sealed partial class Reconciler
         pivot.SelectionChanged += (s, _) =>
         {
             var p = (WinUI.Pivot)s!;
+            if (ChangeEchoSuppressor.ShouldSuppress(p)) return;
             (GetElementTag(p) as PivotElement)?.OnSelectionChanged?.Invoke(p.SelectedIndex);
         };
         ApplySetters(pvt.Setters, pivot);
@@ -2401,6 +2403,7 @@ public sealed partial class Reconciler
         listBox.SelectionChanged += (s, _) =>
         {
             var l = (WinUI.ListBox)s!;
+            if (ChangeEchoSuppressor.ShouldSuppress(l)) return;
             (GetElementTag(l) as ListBoxElement)?.OnSelectionChanged?.Invoke(l.SelectedIndex);
         };
         ApplySetters(lb.Setters, listBox);
@@ -2424,6 +2427,7 @@ public sealed partial class Reconciler
         selectorBar.SelectionChanged += (s, _) =>
         {
             var bar = (WinUI.SelectorBar)s!;
+            if (ChangeEchoSuppressor.ShouldSuppress(bar)) return;
             var idx = bar.Items.IndexOf(bar.SelectedItem);
             (GetElementTag(bar) as SelectorBarElement)?.OnSelectionChanged?.Invoke(idx);
         };
