@@ -86,6 +86,11 @@ race-condition argument in §11:
 3. **The QueryCache is the only shared mutable state that spans hooks.** Any
    cross-hook coordination (dedup, invalidation, focus revalidation) flows
    through cache keys and the `EntryChanged` event.
+4. **Hook-affined types (`PendingScope`, `FocusRevalidationService`) use the
+   dispatcher as their synchronization mechanism**, not internal locks. Each
+   captures its owner thread on first use and asserts (DEBUG-only) on every
+   subsequent call. Background-thread access must marshal through
+   `IHookDispatcher.Post` first. See §8.1 for the full split.
 
 ---
 
@@ -785,7 +790,7 @@ than firing callbacks on a dead component.
 
 ### 7.1 Data structure
 
-`PendingScope` (`PendingScope.cs:20-79`) is a thread-safe dictionary from
+`PendingScope` (`PendingScope.cs`) is a UI-thread-affined dictionary from
 opaque `object` token → `bool` loading-state, plus a `Changed` event. Each
 hook inside the scope uses `this` as the token and calls
 `Register(this, isLoading: true)` on construction, `SetLoading(this, false)`
@@ -795,6 +800,16 @@ as soon as its state leaves `Loading`, and `Unregister(this)` on unmount.
 number of resources inside the scope. For the typical scope size (a few
 resources per modal / page), this is irrelevant. For very dense trees it
 could be replaced with a running counter, but that's premature today.
+
+**Threading.** The scope captures its owner thread on first method call (lazy
+capture rather than constructor capture, so the static
+`AppContexts.PendingScope` default doesn't get pinned to the type-init thread)
+and asserts (DEBUG only) that every subsequent `Register` / `SetLoading` /
+`Unregister` / `AnyLoading` / `Count` call comes from the same thread. The
+dispatcher boundary upstream — hook continuations marshal through
+`IHookDispatcher.Post` before touching `LastValue`, whose setter calls
+`NotifyPending → SetLoading` — guarantees this in production. There is no
+internal lock; the dispatcher *is* the synchronization mechanism.
 
 ### 7.2 Scope plumbing
 
@@ -875,7 +890,7 @@ with its *nearest* ancestor `PendingComponent`, not every ancestor.
 
 ## 8. `FocusRevalidationService`
 
-`FocusRevalidationService.cs:23-121`. Off by default
+`FocusRevalidationService.cs`. Off by default
 (`ReactorFeatureFlags.FocusRevalidation = false` — `ReactorFeatureFlags.cs:40`).
 When enabled and opted into per-hook via `ResourceOptions.RefetchOnWindowFocus
 = true`, the service tracks the set of cache keys under observation and
@@ -890,12 +905,17 @@ invalidates the ones past their `StaleTime` on window-activation events.
   called within `ThrottleWindow` (default 30s) of the previous call. This
   prevents Alt-Tab thrashing from firing a sweep on every focus transition.
   `RevalidateNowForce` bypasses the throttle for tests.
-- The enrolled set is snapshotted out of the lock before iteration so a
-  handler that `Unenrolls` itself mid-sweep does not mutate the
-  live collection.
+- The enrolled set is snapshotted before iteration so a handler that
+  `Unenrolls` itself mid-sweep does not mutate the live collection.
 - The sweep works only through `QueryCache.TryGetFetchedAt` — a non-generic
   metadata peek that reads the entry's age without knowing `T`. This lets the
   service stay generic-free.
+
+**Threading.** UI-thread-affined, same shape as `PendingScope`: lazy owner-
+thread capture on first method call, DEBUG-only assert thereafter. WinUI's
+`CoreWindow.Activated` and `CoreApplication.Resuming` fire on the UI thread,
+hook lifecycle paths (Enroll/Unenroll) run during render or cleanup on the UI
+thread, so the affinity is a natural fit. No internal lock.
 
 The actual OS event plumbing (`CoreWindow.Activated`, `CoreApplication.Resuming`)
 is not in this phase-1 branch; it's wired in phase 4 per the spec. The service
@@ -903,6 +923,48 @@ exists standalone so hooks can enroll against the right contract today, and
 the plumbing switches on later.
 
 ---
+
+## 8.1 The dispatcher as the synchronization mechanism
+
+The async system has been migrated (in part) from defensive per-type locks
+toward "the UI thread, reached through `IHookDispatcher.Post`, is the
+synchronization mechanism." Today's split:
+
+| Component | Sync mechanism | Reasoning |
+|---|---|---|
+| `QueryCache` slot | Per-slot `Monitor` lock | Truly cross-cutting shared state; eviction runs on a thread-pool timer; tests use the cache without a dispatcher. Decoupling the cache from UI responsiveness is a feature. |
+| `QueryCache._timerLock` | `Monitor` + `Interlocked` | Timer create/dispose is rare; staying lock-based keeps it independent of UI affinity. |
+| `MutationHookState._lock` | `Monitor` lock | `RunAsync` is intentionally callable from any thread; the lock protects `_pendingCount`/`_lastResult`/`_error` against the cross-thread caller. |
+| `InfiniteResource._lock` | `Monitor` lock | Documented thread-safe contract; threading tests drive `ItemAt`/`EnsureRange` from background threads. Production callers (virtualized list controls during layout) are UI-thread-affined, but the contract is the broader one. |
+| `UseResource` / `UseInfiniteResource` / `UseMutation` rerender reducer | `threadSafe: true` | The hook continuation `Apply` runs on the dispatcher thread in production, but the test-suite `InlineDispatcher` runs `Apply` on whatever thread completed the underlying `Task`. The `threadSafe` reducer is what makes those test paths safe. |
+| `PendingScope` | UI-thread affinity (`AssertOwnerThread`, lazy-captured, DEBUG-only) | All hook lifecycle paths run during render / cleanup / dispatcher-`Apply`, all UI thread. |
+| `FocusRevalidationService` | UI-thread affinity (`AssertOwnerThread`, lazy-captured, DEBUG-only) | Same. |
+| `Pending`'s rerender reducer | Plain (no `threadSafe`) | `scope.Changed` only fires from `PendingScope` mutations, which are now UI-thread-affined. |
+
+**`IHookDispatcher.InvokeAsync<T>(Func<T>)`** is a typed escape hatch
+(`UseResource.cs`, `HookDispatcherExtensions`) for the rare case where
+background code needs to *read* UI-affined state and get a value back. Each
+call is a queued work item plus a continuation; substantially heavier than
+the lock-based read it replaces. Use sparingly. Default is still
+fire-and-forget `Post`.
+
+**Deferred** (still lock-based, would require a marshalling test dispatcher
+to migrate):
+
+- `InfiniteResource._lock`. Resource-level threading tests
+  (`UseInfiniteResourceThreadingTests.Concurrent_ItemAt_Coalesces_Page_Fetches`,
+  `EnsureRange_And_Completing_Page_Do_Not_Race_Duplicate_Fetch`,
+  `EnsureRange_Flood_Coalesces_To_Covered_Pages`) document a thread-safety
+  contract that production callers don't actually exercise but the tests do.
+  Migration would either delete those tests (narrowing the contract to
+  UI-thread-only) or rewrite them to drive concurrent access through a
+  dispatcher.
+- `threadSafe: true` reducers in the three async hooks. These exist because
+  the `InlineDispatcher` test stub runs `Apply` on whichever thread completed
+  the `Task`; a real "marshalling" test dispatcher (one that captures a
+  designated UI thread and queues Posts onto it) would let the reducers go
+  back to plain. The migration is invasive (every threading test needs to
+  drain the dispatcher between assertions) and is not done in this pass.
 
 ## 9. Threading and race-condition argument
 

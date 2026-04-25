@@ -49,7 +49,10 @@ public sealed class PendingComponent : Component<PendingProps>
         scopeRef.Current ??= new PendingScope();
         var scope = scopeRef.Current!;
 
-        var (_, tick) = UseReducer(0, threadSafe: true);
+        // PendingScope is UI-thread-affined: Register / SetLoading / Unregister all assert
+        // owner-thread on entry, so the Changed event always fires on the UI thread. The
+        // reducer therefore doesn't need threadSafe; the dispatcher boundary is upstream.
+        var (_, tick) = UseReducer(0);
 
         // Re-render whenever the scope's loading state changes. The subscription is
         // re-armed on every render so a stale handler from a previous mount cannot fire.

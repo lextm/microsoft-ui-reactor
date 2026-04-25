@@ -75,7 +75,7 @@ public class PendingTests
     // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task UseResource_With_Pending_Scope_Registers_Loading()
+    public void UseResource_With_Pending_Scope_Registers_Loading()
     {
         using var cache = new QueryCache();
         var scope = new PendingScope();
@@ -86,6 +86,10 @@ public class PendingTests
         contextScope.Push(new Dictionary<ContextBase, object?> { [AppContexts.PendingScope] = scope });
         ctx.BeginRender(() => { }, contextScope);
 
+        // Default TCS: continuations run inline on SetResult, so the InlineDispatcher
+        // settles all state synchronously before the next assertion. No await needed —
+        // PendingScope is UI-thread-affined and a Task.Delay continuation would resume
+        // on a thread-pool thread, breaking that contract.
         var tcs = new TaskCompletionSource<int>();
         var v = ctx.UseResource(_ => tcs.Task, cache, Array.Empty<object>(), null, dispatcher);
         Assert.IsType<AsyncValue<int>.Loading>(v);
@@ -93,9 +97,6 @@ public class PendingTests
         Assert.Equal(1, scope.Count);
 
         tcs.SetResult(42);
-        // The continuation runs via the InlineDispatcher.Post; allow any in-flight
-        // Task.ContinueWith to settle before asserting.
-        for (int i = 0; i < 10 && scope.AnyLoading; i++) await Task.Delay(5);
         Assert.False(scope.AnyLoading);
     }
 
@@ -166,7 +167,7 @@ public class PendingTests
     // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task Two_Siblings_AnyLoading_Until_Both_Resolve()
+    public void Two_Siblings_AnyLoading_Until_Both_Resolve()
     {
         using var cache = new QueryCache();
         var scope = new PendingScope();
@@ -182,6 +183,9 @@ public class PendingTests
         var ctxB = new RenderContext();
         ctxB.BeginRender(() => { }, csB);
 
+        // Default TCS — SetResult continuations are inline. PendingScope is
+        // UI-thread-affined; awaiting Task.Delay would resume on a thread-pool thread
+        // and trip the affinity check.
         var gateA = new TaskCompletionSource<int>();
         var gateB = new TaskCompletionSource<int>();
         ctxA.UseResource(_ => gateA.Task, cache, new object[] { "a" }, null, dispatcher);
@@ -189,12 +193,10 @@ public class PendingTests
         Assert.True(scope.AnyLoading);
 
         gateA.SetResult(1);
-        // Even after A resolves, scope should still show loading because B hasn't.
-        await Task.Delay(20);
+        // After A resolves, scope should still show loading because B hasn't.
         Assert.True(scope.AnyLoading);
 
         gateB.SetResult(2);
-        for (int i = 0; i < 10 && scope.AnyLoading; i++) await Task.Delay(5);
         Assert.False(scope.AnyLoading);
     }
 
@@ -221,7 +223,7 @@ public class PendingTests
     // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task UseInfiniteResource_Scope_Tracks_Initial_Load()
+    public void UseInfiniteResource_Scope_Tracks_Initial_Load()
     {
         using var cache = new QueryCache();
         var scope = new PendingScope();
@@ -232,6 +234,7 @@ public class PendingTests
         cs.Push(new Dictionary<ContextBase, object?> { [AppContexts.PendingScope] = scope });
         ctx.BeginRender(() => { }, cs);
 
+        // Default TCS — continuations inline, no await needed (PendingScope is UI-affined).
         var gate = new TaskCompletionSource<Page<int, string>>();
         var resource = ctx.UseInfiniteResource<int, string>(
             fetchPage: (_, _) => gate.Task,
@@ -240,7 +243,6 @@ public class PendingTests
         Assert.True(scope.AnyLoading);
 
         gate.SetResult(new Page<int, string>(new[] { 1, 2, 3 }, NextCursor: null, TotalCount: 3));
-        for (int i = 0; i < 10 && scope.AnyLoading; i++) await Task.Delay(5);
         Assert.False(scope.AnyLoading);
     }
 

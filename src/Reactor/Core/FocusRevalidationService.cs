@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Microsoft.UI.Reactor.Core;
 
 /// <summary>
@@ -15,16 +17,22 @@ namespace Microsoft.UI.Reactor.Core;
 /// <para><b>Throttling.</b> A default 30-second window between activation-driven
 /// revalidation sweeps prevents Alt-Tab thrashing from refetching on every
 /// transient focus event. Adjustable via <see cref="ThrottleWindow"/>.</para>
-/// <para><b>Threading.</b> All members are thread-safe. Activation callbacks may
-/// fire on the UI thread or the dispatcher thread — the service does not marshal.
-/// Invalidation in turn fires <c>QueryCache.EntryChanged</c>, which the
-/// <c>UseResource</c> hook listens to and re-renders from.</para>
+/// <para><b>Threading.</b> UI-thread-affined. The service captures the thread it was
+/// constructed on and asserts (DEBUG only) that every public method comes from that
+/// thread. Production callers (hook lifecycle on render/cleanup, WinUI activation
+/// callbacks on the UI thread) satisfy that. Background-thread callers must marshal
+/// through the dispatcher first. Invalidation in turn fires
+/// <c>QueryCache.EntryChanged</c>, which the <c>UseResource</c> hook listens to and
+/// re-renders from.</para>
 /// </remarks>
 public sealed class FocusRevalidationService
 {
     private readonly QueryCache _cache;
     private readonly HashSet<string> _enrolled = new();
-    private readonly object _lock = new();
+    // Captured on first method call rather than in the constructor — the static
+    // AppContexts.FocusRevalidation default is constructed at type-init time on whichever
+    // thread first touches the type, which is not necessarily the production UI thread.
+    private int _ownerThreadId;
     private DateTime _lastSweepUtc = DateTime.MinValue;
 
     /// <summary>
@@ -40,8 +48,26 @@ public sealed class FocusRevalidationService
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
+    [Conditional("DEBUG")]
+    private void AssertOwnerThread()
+    {
+        int current = Environment.CurrentManagedThreadId;
+        int captured = Interlocked.CompareExchange(ref _ownerThreadId, current, 0);
+        if (captured != 0 && captured != current)
+            throw new InvalidOperationException(
+                $"FocusRevalidationService accessed from thread {current}, " +
+                $"but it is affined to thread {captured}. Marshal through IHookDispatcher.Post first.");
+    }
+
     /// <summary>Diagnostic: current number of keys enrolled for focus revalidation.</summary>
-    public int EnrolledCount { get { lock (_lock) return _enrolled.Count; } }
+    public int EnrolledCount
+    {
+        get
+        {
+            AssertOwnerThread();
+            return _enrolled.Count;
+        }
+    }
 
     /// <summary>
     /// Enroll <paramref name="key"/> in focus revalidation. Hooks call this when
@@ -51,7 +77,8 @@ public sealed class FocusRevalidationService
     public void Enroll(string key)
     {
         if (string.IsNullOrEmpty(key)) return;
-        lock (_lock) _enrolled.Add(key);
+        AssertOwnerThread();
+        _enrolled.Add(key);
     }
 
     /// <summary>
@@ -61,7 +88,8 @@ public sealed class FocusRevalidationService
     public void Unenroll(string key)
     {
         if (string.IsNullOrEmpty(key)) return;
-        lock (_lock) _enrolled.Remove(key);
+        AssertOwnerThread();
+        _enrolled.Remove(key);
     }
 
     /// <summary>
@@ -74,19 +102,16 @@ public sealed class FocusRevalidationService
     /// </remarks>
     public IReadOnlyList<string> RevalidateNow()
     {
+        AssertOwnerThread();
         var now = UtcNow();
-        lock (_lock)
-        {
-            if (now - _lastSweepUtc < ThrottleWindow)
-                return Array.Empty<string>();
-            _lastSweepUtc = now;
-        }
+        if (now - _lastSweepUtc < ThrottleWindow)
+            return Array.Empty<string>();
+        _lastSweepUtc = now;
 
-        // Copy the enrolled set out of the lock — Invalidate callbacks can fire
-        // EntryChanged handlers that re-enter the service (e.g. unenroll on
-        // unmount during the refetch storm).
-        string[] snapshot;
-        lock (_lock) snapshot = _enrolled.ToArray();
+        // Snapshot the enrolled set before iteration: Invalidate fires EntryChanged,
+        // whose handlers can re-enter the service (e.g. unenroll on unmount during a
+        // refetch storm). Mutating _enrolled while iterating it would throw.
+        var snapshot = _enrolled.ToArray();
 
         var invalidated = new List<string>();
         foreach (var key in snapshot)
@@ -106,7 +131,8 @@ public sealed class FocusRevalidationService
     /// </summary>
     public IReadOnlyList<string> RevalidateNowForce()
     {
-        lock (_lock) _lastSweepUtc = DateTime.MinValue;
+        AssertOwnerThread();
+        _lastSweepUtc = DateTime.MinValue;
         return RevalidateNow();
     }
 

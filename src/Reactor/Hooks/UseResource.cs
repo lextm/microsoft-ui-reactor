@@ -37,6 +37,58 @@ public interface IHookDispatcher
 }
 
 /// <summary>
+/// Conveniences over <see cref="IHookDispatcher.Post(Action)"/>. The fire-and-forget
+/// <see cref="IHookDispatcher.Post(Action)"/> covers the common case (a hook continuation
+/// updating its own state); these helpers exist for the rarer case where background code
+/// needs to <i>read</i> UI-affined state and get a value back, which is shaped like a
+/// <see cref="Task{T}"/> rather than a queued action.
+/// </summary>
+/// <remarks>
+/// Use sparingly. Each <see cref="InvokeAsync{T}"/> call is a queued work item plus a
+/// continuation — substantially heavier than the lock-based read it replaces. The escape
+/// hatch is here for genuinely cross-thread reads (e.g., a background pager wanting to
+/// know if a page is in flight); routine state updates should still go through
+/// <see cref="IHookDispatcher.Post(Action)"/>.
+/// </remarks>
+public static class HookDispatcherExtensions
+{
+    /// <summary>
+    /// Run <paramref name="func"/> on the dispatcher thread and return its result. The
+    /// returned task completes once the function has executed; exceptions thrown by the
+    /// function are surfaced as a faulted task.
+    /// </summary>
+    public static Task<T> InvokeAsync<T>(this IHookDispatcher dispatcher, Func<T> func)
+    {
+        if (dispatcher is null) throw new ArgumentNullException(nameof(dispatcher));
+        if (func is null) throw new ArgumentNullException(nameof(func));
+        var tcs = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        dispatcher.Post(() =>
+        {
+            try { tcs.SetResult(func()); }
+            catch (Exception ex) { tcs.SetException(ex); }
+        });
+        return tcs.Task;
+    }
+
+    /// <summary>
+    /// Run <paramref name="action"/> on the dispatcher thread and return a task that
+    /// completes once it has executed. Exceptions are surfaced as a faulted task.
+    /// </summary>
+    public static Task InvokeAsync(this IHookDispatcher dispatcher, Action action)
+    {
+        if (dispatcher is null) throw new ArgumentNullException(nameof(dispatcher));
+        if (action is null) throw new ArgumentNullException(nameof(action));
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        dispatcher.Post(() =>
+        {
+            try { action(); tcs.SetResult(null); }
+            catch (Exception ex) { tcs.SetException(ex); }
+        });
+        return tcs.Task;
+    }
+}
+
+/// <summary>
 /// Default <see cref="IHookDispatcher"/> backed by <c>DispatcherQueue.GetForCurrentThread()</c>.
 /// Falls back to inline invocation when called outside a WinUI dispatcher (unit tests).
 /// </summary>
