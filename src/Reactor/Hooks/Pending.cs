@@ -49,10 +49,14 @@ public sealed class PendingComponent : Component<PendingProps>
         scopeRef.Current ??= new PendingScope();
         var scope = scopeRef.Current!;
 
-        // PendingScope is UI-thread-affined: Register / SetLoading / Unregister all assert
-        // owner-thread on entry, so the Changed event always fires on the UI thread. The
-        // reducer therefore doesn't need threadSafe; the dispatcher boundary is upstream.
-        var (_, tick) = UseReducer(0);
+        // PendingScope is UI-thread-affined in the common path (real WinUI dispatcher
+        // marshals UseResource's Apply onto the UI thread before SetLoading runs), but
+        // there's an edge case: when no dispatcher is captured (headless host, certain
+        // unit-test paths), Apply runs inline on the Task completion thread and SetLoading
+        // → Changed → tick() reaches the reducer from a thread-pool thread. Keep
+        // threadSafe:true so the rerender path is safe regardless of which thread raises
+        // Changed. The PendingScope assertion already catches this in DEBUG.
+        var (_, tick) = UseReducer(0, threadSafe: true);
 
         // Re-render whenever the scope's loading state changes. The subscription is
         // re-armed on every render so a stale handler from a previous mount cannot fire.

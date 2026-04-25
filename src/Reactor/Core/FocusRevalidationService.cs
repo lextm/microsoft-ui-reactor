@@ -17,13 +17,14 @@ namespace Microsoft.UI.Reactor.Core;
 /// <para><b>Throttling.</b> A default 30-second window between activation-driven
 /// revalidation sweeps prevents Alt-Tab thrashing from refetching on every
 /// transient focus event. Adjustable via <see cref="ThrottleWindow"/>.</para>
-/// <para><b>Threading.</b> UI-thread-affined. The service captures the thread it was
-/// constructed on and asserts (DEBUG only) that every public method comes from that
-/// thread. Production callers (hook lifecycle on render/cleanup, WinUI activation
-/// callbacks on the UI thread) satisfy that. Background-thread callers must marshal
-/// through the dispatcher first. Invalidation in turn fires
-/// <c>QueryCache.EntryChanged</c>, which the <c>UseResource</c> hook listens to and
-/// re-renders from.</para>
+/// <para><b>Threading.</b> UI-thread-affined. The service captures its owner thread on
+/// the first method call (lazy, so the static <c>AppContexts.FocusRevalidation</c>
+/// default isn't pinned to whichever thread happened to load the type) and then asserts
+/// (DEBUG only) that every subsequent public method call comes from that same thread.
+/// Production callers (hook lifecycle on render/cleanup, WinUI activation callbacks on
+/// the UI thread) satisfy that. Background-thread callers must marshal through the
+/// dispatcher first. Invalidation in turn fires <c>QueryCache.EntryChanged</c>, which
+/// the <c>UseResource</c> hook listens to and re-renders from.</para>
 /// </remarks>
 public sealed class FocusRevalidationService
 {

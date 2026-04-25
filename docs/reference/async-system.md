@@ -937,9 +937,9 @@ synchronization mechanism." Today's split:
 | `MutationHookState._lock` | `Monitor` lock | `RunAsync` is intentionally callable from any thread; the lock protects `_pendingCount`/`_lastResult`/`_error` against the cross-thread caller. |
 | `InfiniteResource._lock` | `Monitor` lock | Documented thread-safe contract; threading tests drive `ItemAt`/`EnsureRange` from background threads. Production callers (virtualized list controls during layout) are UI-thread-affined, but the contract is the broader one. |
 | `UseResource` / `UseInfiniteResource` / `UseMutation` rerender reducer | `threadSafe: true` | The hook continuation `Apply` runs on the dispatcher thread in production, but the test-suite `InlineDispatcher` runs `Apply` on whatever thread completed the underlying `Task`. The `threadSafe` reducer is what makes those test paths safe. |
-| `PendingScope` | UI-thread affinity (`AssertOwnerThread`, lazy-captured, DEBUG-only) | All hook lifecycle paths run during render / cleanup / dispatcher-`Apply`, all UI thread. |
-| `FocusRevalidationService` | UI-thread affinity (`AssertOwnerThread`, lazy-captured, DEBUG-only) | Same. |
-| `Pending`'s rerender reducer | Plain (no `threadSafe`) | `scope.Changed` only fires from `PendingScope` mutations, which are now UI-thread-affined. |
+| `PendingScope` | UI-thread affinity (`AssertOwnerThread`, lazy-captured, DEBUG-only) | All hook lifecycle paths run during render / cleanup / dispatcher-`Apply`, all UI thread *when a real dispatcher is present*. The no-dispatcher edge case (`state.Dispatcher == null`, headless hosts) can fire `SetLoading` from the Task completion thread; DEBUG catches it, Release would race. Real production hosts always install a dispatcher. |
+| `FocusRevalidationService` | UI-thread affinity (`AssertOwnerThread`, lazy-captured, DEBUG-only) | Same shape. WinUI's activation/resume callbacks fire on the UI thread; hook-lifecycle Enroll/Unenroll runs during render or cleanup. |
+| `Pending`'s rerender reducer | `threadSafe: true` | Belt-and-suspenders for the no-dispatcher edge above: `PendingScope.Changed` *should* fire on the UI thread, but if it doesn't, the reducer's lock keeps the rerender path safe. The cost is one short uncontended lock take per scope mutation. |
 
 **`IHookDispatcher.InvokeAsync<T>(Func<T>)`** is a typed escape hatch
 (`UseResource.cs`, `HookDispatcherExtensions`) for the rare case where

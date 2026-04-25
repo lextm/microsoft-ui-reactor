@@ -12,12 +12,17 @@ namespace Microsoft.UI.Reactor.Hooks;
 /// <para><b>Semantics.</b> Only <c>Loading</c> triggers the fallback — spec §10.1. A
 /// <c>Reloading(previous)</c> is "we already have something to show" and the subtree
 /// continues to render normally.</para>
-/// <para><b>Threading.</b> UI-thread-affined. The scope captures the thread it was constructed
-/// on and asserts (DEBUG only) that every <see cref="Register"/> / <see cref="SetLoading"/> /
-/// <see cref="Unregister"/> call comes from that thread. Production callers (hook
-/// constructors during render, hook continuations marshalled through <c>IHookDispatcher</c>,
-/// hook <c>Dispose</c> during cleanup) all run on the UI thread, so the affinity is a
-/// natural fit. Background-thread callers must marshal through the dispatcher first.</para>
+/// <para><b>Threading.</b> UI-thread-affined. The scope captures its owner thread on the
+/// first method call (lazy, so the static <c>AppContexts.PendingScope</c> default isn't
+/// pinned to whichever thread happened to load the type) and then asserts (DEBUG only)
+/// that every subsequent <see cref="Register"/> / <see cref="SetLoading"/> /
+/// <see cref="Unregister"/> / <see cref="AnyLoading"/> / <see cref="Count"/> access comes
+/// from that same thread. Production callers (hook constructors during render, hook
+/// continuations marshalled through <c>IHookDispatcher</c>, hook <c>Dispose</c> during
+/// cleanup) all run on the UI thread, so the affinity is a natural fit. Background-thread
+/// callers must marshal through the dispatcher first; the no-dispatcher edge case
+/// (headless hosts where <c>UseResource</c> applies completions inline on the Task
+/// completion thread) violates this and is caught in DEBUG.</para>
 /// <para><b>Scope nesting.</b> Each <c>Pending</c> provides a fresh scope to its subtree,
 /// so nested <c>Pending</c>s are independent. A hook registers only with its nearest
 /// ancestor scope.</para>
