@@ -1402,19 +1402,47 @@ For the common case (set once, re-resolve on system theme change), this works.
 For the edge case (rapid theme toggling or theme-dependent VSM transitions),
 the snapshot model has a one-render-cycle delay.
 
-**5. No custom theme resource definitions (unchanged).** `Theme.Ref("key")`
-references existing WinUI resources, but there's no way to define new theme
-resources from Reactor. No branded colors that adapt to light/dark, no app-specific
-semantic tokens. This was the most frequently cited remaining gap in the previous
-review and it's still unaddressed. React's Material UI `createTheme()`, SwiftUI's
-asset catalog named colors, and Compose's `lightColorScheme()`/`darkColorScheme()`
-all provide this. Reactor still only references the platform's built-in palette.
+**5. Custom theme resource definitions (addressed).** `AppTheme.Register()`
+allows apps to define brand colors and app-specific semantic tokens that adapt
+to Light, Dark, and High Contrast themes. The pattern injects custom brushes
+into WinUI's `Application.Current.Resources.ThemeDictionaries` at app startup,
+making them available to `Theme.Ref()` and lightweight styling `.Resources()`:
 
-The lightweight styling `ResourceBuilder` makes this more pressing, not less.
-A developer who discovers they can override `ButtonBackground` with a brand
-color will immediately want a brand color that adapts to light/dark — which
-requires custom theme resources. The feature that should unblock this (custom
-theme definitions) is the feature that's still missing.
+```csharp
+// App startup — register custom theme-aware brushes
+AppTheme.Register(theme => theme
+    .Add("BrandPrimaryBrush",
+        light: "#005A9E",
+        dark: "#4FC3F7",
+        highContrast: "SystemColorHighlightColorBrush")
+    .Add("BrandSurfaceBrush",
+        light: "#F0F6FF",
+        dark: "#1A1A2E",
+        highContrast: "SystemColorWindowColorBrush"));
+
+// Consumption — same Theme.Ref() API, no new syntax
+Border(child).Background(Theme.Ref("BrandPrimaryBrush"))
+Button("Brand", onClick).Resources(r => r
+    .Set("ButtonBackground", Theme.Ref("BrandPrimaryBrush")))
+```
+
+This closes the most frequently cited gap from the previous review. The API
+requires all three variants (light, dark, highContrast) to enforce HC
+accessibility, supports gradient brushes with solid HC fallback, and
+coordinates with the existing `Theme.Ref()` consumption path. The lightweight
+styling `ResourceBuilder` now composes naturally with custom brand colors —
+developers can override `ButtonBackground` with a brand color that adapts to
+theme, which was the exact scenario that motivated this gap.
+
+**Remaining caveats:** HC values that reference system color brush keys (e.g.,
+`"SystemColorHighlightColorBrush"`) create a snapshot brush at registration
+time rather than a live `{ThemeResource}` binding — if the HC palette changes
+at runtime (rare but possible), the custom brush won't update until the next
+full re-render. Gradient resources are limited to surfaces that accept
+arbitrary `Brush` types; most control template resource keys expect
+`SolidColorBrush`. The `UseColorScheme` bug and `ThemeRef`/`RequestedTheme`
+interaction gap (items noted above) remain unresolved and affect this feature
+when combined with per-subtree theme overrides.
 
 **6. Only three properties support ThemeRef bindings (unchanged).** Background,
 Foreground, and BorderBrush via `GetDependencyPropertyName()`. No Fill/Stroke
@@ -1465,7 +1493,8 @@ where none existed.
 But the grade is B-, not B, because of the `UseColorScheme` bug (reads app
 theme, not element effective theme), the `ThemeRef` + `RequestedTheme`
 interaction gap (dynamically-loaded styles don't respect per-element theme),
-missing custom theme resource definitions, stringly-typed resource keys with
+custom theme resource HC snapshot limitation (system color brush references
+are snapshots, not live bindings), stringly-typed resource keys with
 no validation, and shallow analyzer coverage. The two most impactful new
 features — RequestedTheme and UseColorScheme — don't compose correctly with
 each other, which is exactly the scenario they were designed for (dark sidebar
@@ -3772,7 +3801,7 @@ SwiftUI, Compose).
 | **Async Data** | B+ | A (TanStack) | B+ | C | **NEW section 3a.** UseResource/UseInfiniteResource/UseMutation/Pending, AsyncValue ADT, QueryCache with TTL+pattern invalidation, focus revalidation, DataGrid hook-paging. In-process cache only, no retry default, zero field evidence |
 | **Reconciler** | B- | A | A- | A | Works but monolithic, no concurrent mode; Grid-children-on-type-flip fix (e86ff69) closes a real bug; spec 027 Phase 2 trampoline dispatch removes per-render COM detach/attach on pointer/key/focus events — architecturally right, unmeasured in the field |
 | **Layout** | B+ | B+ | A | A | Flex is good; Grid is stringly-typed; FlexPanel CSS semantics just got corrected (commit 397f274) — previous behavior was drift-prone |
-| **Theming** | B- | B+ | A | A | Style caching fixes XamlReader.Load perf; RequestedTheme modifier; UseColorScheme hook (reads app theme, not element effective); 3 ThemeRef props; no custom resources |
+| **Theming** | B- | B+ | A | A | Style caching fixes XamlReader.Load perf; RequestedTheme modifier; UseColorScheme hook (reads app theme, not element effective); 3 ThemeRef props; AppTheme.Register() for custom theme resources (HC snapshot caveat) |
 | **Navigation** | B+ | A | A | A | Type-safe routes, dev-owned stack, GPU transitions, source+destination guards, caching, serialization, enhanced deep linking, diagnostics; ConnectedTransition still a stub, no adaptive multi-pane |
 | **Commanding** | B+ | N/A | C+ | N/A | Define-once commands, 16 standard, async lifecycle, focus-scoped accelerators; accelerator rebuild per render, labels not localized, no command routing, no palette UI |
 | **Lists/Collections** | B | B+ | A | A | Virtualization exists, no sections |
@@ -4129,7 +4158,7 @@ features now work, and the compositor-property ceiling is the only remaining
 structural concern. Styling has made a significant jump: style caching fixes the
 major perf concern, lightweight styling is a genuine differentiator, and Roslyn
 analyzers provide static guidance — but the UseColorScheme/RequestedTheme
-composition bug and missing custom theme resources keep it from being fully
+composition bug and custom theme resource HC snapshot limitation keep it from being fully
 competitive. Accessibility has made the largest single-iteration improvement:
 SemanticPanel solves the hardest architectural problem, the three-layer
 diagnostic approach (compile-time + runtime + E2E) is now more comprehensive
