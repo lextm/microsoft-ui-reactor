@@ -1,0 +1,58 @@
+<Page
+    x:Class="ApiDash.Pages.PostDetailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:ApiDash.Models"
+    Loaded="Page_Loaded">
+
+    <Grid Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Back button -->
+        <Button Grid.Row="0" Content="&#xE72B;" FontFamily="Segoe MDL2 Assets"
+                Click="Back_Click" Margin="0,0,0,16" />
+
+        <!-- Loading -->
+        <ProgressRing Grid.Row="1" x:Name="LoadingRing" IsActive="False"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+        <!-- Error -->
+        <StackPanel Grid.Row="1" x:Name="ErrorPanel" Visibility="Collapsed"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+            <TextBlock x:Name="ErrorText" Foreground="Red" TextAlignment="Center" />
+            <Button Content="Retry" Click="Retry_Click" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" x:Name="ContentPanel" Visibility="Collapsed">
+            <StackPanel Spacing="16" Padding="0,0,0,24">
+                <TextBlock x:Name="PostTitle" Style="{StaticResource SubtitleTextBlockStyle}" TextWrapping="Wrap" />
+                <TextBlock x:Name="PostBody" TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                <TextBlock Text="Comments" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,0" />
+
+                <ItemsRepeater x:Name="CommentsRepeater">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:Comment">
+                            <Border BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                    BorderThickness="0,0,0,1" Padding="0,8">
+                                <StackPanel Spacing="4">
+                                    <TextBlock FontWeight="SemiBold">
+                                        <Run Text="{x:Bind Name}" />
+                                        <Run Text=" — " />
+                                        <Run Text="{x:Bind Email}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{x:Bind Body}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

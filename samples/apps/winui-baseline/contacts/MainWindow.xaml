@@ -1,0 +1,153 @@
+<Window
+    x:Class="Contacts.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Contacts.ViewModels"
+    Title="Contacts">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Panel: Search + List -->
+        <Grid Grid.Row="0" Grid.Column="0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,1,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Toolbar -->
+            <StackPanel Grid.Row="0" Padding="12" Spacing="8">
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    PlaceholderText="Search contacts..."
+                    QueryIcon="Find"
+                    TextChanged="SearchBox_TextChanged" />
+                <Button Content="+ Add Contact" HorizontalAlignment="Stretch" Click="AddButton_Click" />
+            </StackPanel>
+
+            <!-- Contact List -->
+            <ListView
+                x:Name="ContactListView"
+                Grid.Row="1"
+                SelectionMode="Single"
+                SelectionChanged="ContactListView_SelectionChanged">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Padding="8,6" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="36" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                <TextBlock Text="{Binding Initials}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="White" FontSize="14" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Email}" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <!-- Empty State -->
+            <StackPanel x:Name="EmptyState" Grid.Row="1"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="Collapsed">
+                <TextBlock Text="No contacts found" FontSize="16"
+                           HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="Try a different search term"
+                           HorizontalAlignment="Center" FontSize="12"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Right Panel: Detail View -->
+        <Grid Grid.Row="0" Grid.Column="1" Padding="24">
+            <!-- No Selection -->
+            <StackPanel x:Name="NoSelectionPanel"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Select a contact" FontSize="20"
+                           HorizontalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock Text="Choose a contact from the list to view details"
+                           HorizontalAlignment="Center" FontSize="13"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+
+            <!-- Detail Panel -->
+            <ScrollViewer x:Name="DetailPanel" Visibility="Collapsed">
+                <StackPanel Spacing="16" MaxWidth="500">
+                    <!-- Header -->
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <Border Width="64" Height="64" CornerRadius="32"
+                                Background="{ThemeResource AccentFillColorDefaultBrush}">
+                            <TextBlock x:Name="DetailInitials"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="White" FontSize="24" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="DetailFullName" FontSize="24" FontWeight="Bold" />
+                            <TextBlock x:Name="DetailCompany" FontSize="14"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Info Fields -->
+                    <Grid ColumnSpacing="8" RowSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Email" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="DetailEmail" IsTextSelectionEnabled="True" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Phone" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="DetailPhone" IsTextSelectionEnabled="True" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Company" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="DetailCompanyField" IsTextSelectionEnabled="True" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Notes" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="DetailNotes"
+                                   TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    </Grid>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Edit" Click="EditButton_Click" />
+                        <Button Content="Delete" Click="DeleteButton_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0" Padding="12,6">
+            <TextBlock x:Name="StatusText" FontSize="12"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Border>
+    </Grid>
+</Window>

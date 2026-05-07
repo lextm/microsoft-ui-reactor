@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="SettingsHub.Pages.NotificationsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Padding="32">
+        <StackPanel Spacing="24" MaxWidth="600">
+            <TextBlock Text="Notifications" Style="{StaticResource TitleTextBlockStyle}" />
+
+            <ToggleSwitch Header="Email Notifications" IsOn="{x:Bind ViewModel.EmailNotifications, Mode=TwoWay}" />
+            <ToggleSwitch Header="Push Notifications" IsOn="{x:Bind ViewModel.PushNotifications, Mode=TwoWay}" />
+            <ToggleSwitch Header="Sound" IsOn="{x:Bind ViewModel.SoundEnabled, Mode=TwoWay}" />
+            <ToggleSwitch Header="Badge Notifications" IsOn="{x:Bind ViewModel.BadgeEnabled, Mode=TwoWay}" />
+
+            <Button Content="Reset to Defaults" Click="ResetButton_Click" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="SettingsHub.Pages.GeneralPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Padding="32">
+        <StackPanel Spacing="24" MaxWidth="600">
+            <TextBlock Text="General" Style="{StaticResource TitleTextBlockStyle}" />
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="App Name" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <TextBox x:Name="AppNameBox" Text="{x:Bind ViewModel.AppName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="Language" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <ComboBox x:Name="LanguageCombo" ItemsSource="{x:Bind ViewModel.Languages}"
+                          SelectedItem="{x:Bind ViewModel.Language, Mode=TwoWay}" Width="200" />
+            </StackPanel>
+
+            <ToggleSwitch Header="Auto-Save" IsOn="{x:Bind ViewModel.AutoSave, Mode=TwoWay}" />
+
+            <Button Content="Reset to Defaults" Click="ResetButton_Click" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
