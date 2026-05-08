@@ -65,8 +65,9 @@ metrics captured.
    includes extensive WinUI 3 knowledge. Reactor is novel.
 
 5. **Complexity narrows the gap** — Image Gallery (the most complex app) took
-   nearly equal time in both frameworks. For complex apps, Reactor's composability
-   starts to pay off.
+   nearly equal time in both frameworks, and Reactor used fewer tokens
+   (2.52M vs 3.73M). For complex apps, Reactor's composability starts to
+   pay off.
 
 6. **Reactor uses single-file architecture** — Most Reactor apps are 1-2 files vs
    6-15 files for vanilla. Lower cognitive overhead for humans.
