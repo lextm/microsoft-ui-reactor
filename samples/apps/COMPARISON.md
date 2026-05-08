@@ -80,6 +80,74 @@ For **Reactor's roadmap**, this data suggests:
 - The code density advantage (32% fewer LoC) compounds for larger apps
 - Single-file architecture is a genuine DX win regardless of agent vs human
 
+## Runtime Quality (Manual Testing)
+
+Both sets of apps were launched and manually tested. Bugs were classified as
+**app-code** (agent wrote bad logic), **framework bug** (Reactor deficiency),
+or **framework gap** (Reactor doesn't expose needed API).
+
+### Vanilla WinUI 3 — Runtime Issues
+
+| App | Issue | Severity |
+|-----|-------|----------|
+| Image Gallery | Thumbnails don't render (broken data binding) | Major |
+| Pomodoro | No stats section | By design (simpler spec interpretation) |
+| Kanban | No drag-and-drop; column titles lack color | By design |
+| Contacts | No sort buttons | By design |
+
+All vanilla issues are either data-binding bugs (1) or the agent's simpler
+interpretation of the spec (3). No framework-level bugs.
+
+### Reactor — Runtime Issues
+
+| App | Issue | Classification |
+|-----|-------|----------------|
+| Contacts | Add/Remove buttons unresponsive | Framework bug (ContentDialog) |
+| API Dashboard | "New Post" button unresponsive | Framework bug (ContentDialog) |
+| Paint | Clear button unresponsive | Framework bug (ContentDialog) |
+| Paint | Stale focus rings on toolbar buttons | Framework bug (focus state) |
+| Settings Hub | Non-printable labels on Appearance/About pages | Framework bug (NavigationView) |
+| Settings Hub | Sidebar doesn't dismiss on selection | Framework gap (no pane-collapse API) |
+| Image Gallery | Full-size detail view doesn't render | Framework bug (layered Grid/overlay) |
+| Kanban | Card text invisible in dark mode | App-code bug (hardcoded colors) |
+| All (except Pomodoro) | Insufficient padding/margins | App-code bug (agent omitted spacing) |
+
+**Summary:** 5 of 7 Reactor apps have runtime bugs. Of those, **6 are framework
+bugs**, 1 is a framework gap, and 2 are app-code bugs. The ContentDialog issue
+alone affects 3 apps (same root cause).
+
+### Visual Polish
+
+The Reactor apps are noticeably more polished visually — richer layouts, emoji
+icons, themed color accents, card sections, stats footers. This is because the
+Reactor agent received `SKILL.md` + `skills/design.md` which teaches WinUI 3
+design tokens and composition patterns. The vanilla agent relied solely on
+training data and produced more spartan UIs.
+
+However, most Reactor apps (except Pomodoro) lack proper padding/margins —
+content sits too close to window edges. This is an app-code issue: the agent
+didn't apply `.Padding()` consistently.
+
+### Quality Scorecard
+
+| Metric | Reactor | Vanilla |
+|--------|---------|---------|
+| Apps that launch without crash | 7/7 | 7/7 |
+| Apps fully functional at runtime | 2/7 | 6/7 |
+| Framework bugs found | 6 | 0 |
+| App-code bugs found | 2 | 1 |
+| Visual polish (subjective) | Higher | Lower |
+
+### Implications for Reactor
+
+1. **ContentDialog hosting is broken** — the single biggest issue, affecting 3 apps.
+   This is a high-priority framework fix.
+2. **NavigationView has rendering gaps** — labels and pane behavior need attention.
+3. **Focus state management** — recycled/reconciled buttons retain stale focus rings.
+4. **Overlay/layered rendering** — Grid with overlapping children doesn't work as expected.
+5. **The agent produces correct *code*** — the logic is right, but Reactor doesn't
+   execute it correctly at runtime. This is worse than compile errors (silent failures).
+
 ## Methodology Notes
 
 - "Errors" = total compile errors encountered across all build attempts (not unique)
