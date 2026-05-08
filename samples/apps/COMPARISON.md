@@ -19,22 +19,22 @@ metrics captured.
 
 ### Per-App Comparison
 
-| App | Framework | Wall-clock | Turns | Errors | LoC | Files |
-|-----|-----------|-----------|-------|--------|-----|-------|
-| Pomodoro | Reactor | 14m 18s | 27 | 1 | 328 | 2 |
-| Pomodoro | Vanilla | 2m 17s | 5 | 0 | 326 | 4 |
-| Contacts | Reactor | 6m 30s | 6 | 13 | 289 | 5 |
-| Contacts | Vanilla | 2m 01s | 7 | 0 | 481 | 6 |
-| Kanban | Reactor | 6m 21s | 19 | 13 | 271 | 6 |
-| Kanban | Vanilla | 2m 17s | 4 | 0 | 614 | 6 |
-| API Dashboard | Reactor | 13m 36s | 15 | 16 | 361 | 1 |
-| API Dashboard | Vanilla | 2m 10s | 4 | 0 | 486 | 14 |
-| Settings Hub | Reactor | 7m 01s | 14 | 18 | 377 | 1 |
-| Settings Hub | Vanilla | 1m 56s | 5 | 0 | 391 | 15 |
-| Image Gallery | Reactor | 9m 31s | 30 | 14 | 280 | 1 |
-| Image Gallery | Vanilla | 10m 20s | 8 | 4 | 521 | 6 |
-| Paint | Reactor | 8m 12s | 46 | 2 | 367 | 1 |
-| Paint | Vanilla | 4m 11s | 7 | 5 | 526 | 7 |
+| App | Framework | Wall-clock | Turns | Tokens (in+out) | Peak Context | Errors | LoC | Files |
+|-----|-----------|-----------|-------|-----------------|-------------|--------|-----|-------|
+| Pomodoro | Reactor | 14m 18s | 27 | 2.26M | 118K | 1 | 328 | 2 |
+| Pomodoro | Vanilla | 2m 17s | 5 | 433K | 121K | 0 | 326 | 4 |
+| Contacts | Reactor | 6m 30s | 6 | 675K | 124K | 13 | 289 | 5 |
+| Contacts | Vanilla | 2m 01s | 7 | 572K | 124K | 0 | 481 | 6 |
+| Kanban | Reactor | 6m 21s | 19 | 1.65M | 130K | 13 | 271 | 6 |
+| Kanban | Vanilla | 2m 17s | 4 | 378K | 127K | 0 | 614 | 6 |
+| API Dashboard | Reactor | 13m 36s | 15 | 1.29M | 135K | 16 | 361 | 1 |
+| API Dashboard | Vanilla | 2m 10s | 4 | 388K | 68K | 0 | 486 | 14 |
+| Settings Hub | Reactor | 7m 01s | 14 | 1.03M | 81K | 18 | 377 | 1 |
+| Settings Hub | Vanilla | 1m 56s | 5 | 261K | 68K | 0 | 391 | 15 |
+| Image Gallery | Reactor | 9m 31s | 30 | 2.52M | 102K | 14 | 280 | 1 |
+| Image Gallery | Vanilla | 10m 20s | 8 | 3.73M | 92K | 4 | 521 | 6 |
+| Paint | Reactor | 8m 12s | 46 | 3.99M | 95K | 2 | 367 | 1 |
+| Paint | Vanilla | 4m 11s | 7 | 1.48M | 95K | 5 | 526 | 7 |
 
 ### Aggregated Metrics
 
@@ -42,6 +42,8 @@ metrics captured.
 |--------|------------------|-------------------|-------|
 | Total wall-clock | 65m 29s | 25m 12s | 2.6× slower |
 | Avg wall-clock | 9m 21s | 3m 36s | 2.6× slower |
+| Total tokens (in+out) | 13.4M | 7.2M | 1.9× more |
+| Avg tokens per app | 1.92M | 1.03M | 1.9× more |
 | Total turns | 157 | 40 | 3.9× more |
 | Total errors encountered | 77 | 9 | 8.6× more |
 | First-compile success rate | 0/7 (0%) | 5/7 (71%) | — |
