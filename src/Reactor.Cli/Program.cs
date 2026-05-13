@@ -255,10 +255,13 @@ int CreateProject(string name)
 
 string GenerateProgram(string name) =>
     $$"""
+    using System;
     using Microsoft.UI.Reactor;
     using Microsoft.UI.Reactor.Core;
+    using Microsoft.UI.Reactor.Layout;   // FlexDirection, FlexJustify, FlexAlign
+    using Microsoft.UI.Xaml;             // Thickness, HorizontalAlignment, VerticalAlignment
+    using Microsoft.UI.Xaml.Controls;    // Orientation, InfoBarSeverity, etc.
     using static Microsoft.UI.Reactor.Factories;
-    using Microsoft.UI.Xaml;
 
     ReactorApp.Run<App>("{{name}}", width: 800, height: 600
     #if DEBUG
@@ -273,7 +276,11 @@ string GenerateProgram(string name) =>
     {
         public override Element Render()
         {
-            return TextBlock("Hello, World!").FontSize(24).Margin(20);
+            var titleBar = TitleBar("{{name}}").Flex(shrink: 0);
+            var content = Border(
+                TextBlock("Hello, World!").FontSize(24)
+            ).Padding(24);
+            return FlexColumn(titleBar, content);
         }
     }
     """;
