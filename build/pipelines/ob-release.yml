@@ -32,7 +32,9 @@ steps:
   - checkout: self
     fetchDepth: 0
   - task: NuGetAuthenticate@1
-    displayName: 'NuGet Authentication' 
+    displayName: NuGet Authentication
+    inputs:
+      forceReinstallCredentialProvider: true
   - task: UseDotNet@2
     displayName: Setup .NET
     inputs:
@@ -40,7 +42,11 @@ steps:
       version: 10.0.x
 
   - pwsh: |
-      dotnet tool install --global minver-cli --version 5.0.0
+      # Install from the Azure Artifacts feed only (no direct nuget.org use).
+      dotnet tool install --global minver-cli --version 5.0.0 `
+        --configfile nuget.config `
+        --add-source https://pkgs.dev.azure.com/github-private/microsoft/_packaging/microsoft-ui-reactor/nuget/v3/index.json `
+        --ignore-failed-sources
     displayName: Install minver-cli
 
   - pwsh: |
