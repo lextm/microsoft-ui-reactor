@@ -45,7 +45,7 @@ steps:
       # Install from the Azure Artifacts feed only (no direct nuget.org use).
       dotnet tool install --global minver-cli --version 5.0.0 `
         --configfile nuget.config `
-        --add-source https://pkgs.dev.azure.com/github-private/microsoft/_packaging/microsoft-ui-reactor/nuget/v3/index.json`
+        --add-source https://pkgs.dev.azure.com/github-private/microsoft/_packaging/microsoft-ui-reactor/nuget/v3/index.json `
         --ignore-failed-sources
     displayName: Install minver-cli
 
