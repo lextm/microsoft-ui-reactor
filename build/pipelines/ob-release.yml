@@ -31,7 +31,8 @@ pool:
 steps:
   - checkout: self
     fetchDepth: 0
-
+  - task: NuGetAuthenticate@1
+    displayName: 'NuGet Authentication' 
   - task: UseDotNet@2
     displayName: Setup .NET
     inputs:
