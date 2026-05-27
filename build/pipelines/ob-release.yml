@@ -43,7 +43,7 @@ steps:
 
   - pwsh: |
       dotnet tool install --global minver-cli --version 5.0.0 `
-        --configfile nuget.config `
+        --configfile "$(Build.SourcesDirectory)/nuget.config" `
         --ignore-failed-sources
     displayName: Install minver-cli
 
