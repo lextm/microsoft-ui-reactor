@@ -60,5 +60,4 @@ Microsoft.WindowsDesktop.App.Runtime.win-x64|9.0.0
 Microsoft.AspNetCore.App.Runtime.win-x64|9.0.0
 Microsoft.NETCore.App.Runtime.NativeAOT.win-x64|9.0.0
 runtime.win-x64.Microsoft.DotNet.ILCompiler|9.0.0
-
-# Add Microsoft.CodeAnalysis.BinSkim after pinning its version in build/pipelines/ob-release.yml.
+Microsoft.CodeAnalysis.BinSkim|4.4.9.9
