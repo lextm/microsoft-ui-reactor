@@ -43,7 +43,7 @@ steps:
 
   - pwsh: |
       dotnet tool install --global minver-cli --version 5.0.0 `
-        --configfile "$(Build.SourcesDirectory)/nuget.config" `
+        --add-source "https://github-private.pkgs.visualstudio.com/microsoft/_packaging/microsoft-ui-reactor%40Local/nuget/v3/index.json" `
         --ignore-failed-sources
     displayName: Install minver-cli
 
