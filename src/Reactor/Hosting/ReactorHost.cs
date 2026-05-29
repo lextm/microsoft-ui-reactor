@@ -222,7 +222,11 @@ public sealed class ReactorHost : IDisposable
                 _window.Activated += (_, args) =>
                 {
                     if (!ReactorFeatureFlags.FocusRevalidation) return;
+#if WINDOWS
                     if (args.WindowActivationState != WindowActivationState.Deactivated)
+#else
+                    if (args.WindowActivationState != global::Windows.UI.Core.CoreWindowActivationState.Deactivated)
+#endif
                         focusService.RevalidateNow();
                 };
             }

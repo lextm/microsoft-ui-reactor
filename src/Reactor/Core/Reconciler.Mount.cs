@@ -625,7 +625,7 @@ public sealed partial class Reconciler
             var nested = FindDescendant<T>(child);
             if (nested is not null) return nested;
         }
-        return null;
+        return default; // null for T : DependencyObject; satisfies Uno's stricter CS0403 analysis
     }
 
     internal static void HandleNumberBoxImmediateTextChanged(WinUI.NumberBox box, string text)

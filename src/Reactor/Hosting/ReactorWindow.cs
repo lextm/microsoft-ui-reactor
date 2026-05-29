@@ -557,17 +557,21 @@ public sealed class ReactorWindow : IDisposable
     private global::Windows.Graphics.SizeInt32 DipToPhysicalSize(double widthDip, double heightDip)
     {
         var dpi = Dpi == 0 ? 96 : Dpi;
-        return new global::Windows.Graphics.SizeInt32(
-            (int)Math.Round(widthDip * dpi / 96.0),
-            (int)Math.Round(heightDip * dpi / 96.0));
+        return new global::Windows.Graphics.SizeInt32
+        {
+            Width = (int)Math.Round(widthDip * dpi / 96.0),
+            Height = (int)Math.Round(heightDip * dpi / 96.0),
+        };
     }
 
     private global::Windows.Graphics.PointInt32 DipToPhysicalPoint(double xDip, double yDip)
     {
         var dpi = Dpi == 0 ? 96 : Dpi;
-        return new global::Windows.Graphics.PointInt32(
-            (int)Math.Round(xDip * dpi / 96.0),
-            (int)Math.Round(yDip * dpi / 96.0));
+        return new global::Windows.Graphics.PointInt32
+        {
+            X = (int)Math.Round(xDip * dpi / 96.0),
+            Y = (int)Math.Round(yDip * dpi / 96.0),
+        };
     }
 
     private void OnWindowMessage(object? sender, WindowMessageEventArgs args)
@@ -678,7 +682,12 @@ public sealed class ReactorWindow : IDisposable
 
     private void OnNativeActivated(object? sender, WindowActivatedEventArgs args)
     {
+#if WINDOWS
         bool isActive = args.WindowActivationState != WindowActivationState.Deactivated;
+#else
+        // Uno surfaces WindowActivatedEventArgs.WindowActivationState as CoreWindowActivationState.
+        bool isActive = args.WindowActivationState != global::Windows.UI.Core.CoreWindowActivationState.Deactivated;
+#endif
         bool wasActive = IsActive;
         IsActive = isActive;
         IsVisible = true;
@@ -1145,7 +1154,7 @@ public sealed class ReactorWindow : IDisposable
             if (area is null) return;
             int x = area.Value.X + (area.Value.Width - _appWindow.Size.Width) / 2;
             int y = area.Value.Y + (area.Value.Height - _appWindow.Size.Height) / 2;
-            _appWindow.Move(new global::Windows.Graphics.PointInt32(x, y));
+            _appWindow.Move(new global::Windows.Graphics.PointInt32 { X = x, Y = y });
         }
         catch (COMException ex) when (HResults.IsTeardownReentry(ex.HResult))
         { DiagnosticLog.SwallowedError(LogCategory.Hosting, "ReactorWindow.CenterOnScreen", ex); }
@@ -1355,7 +1364,7 @@ public sealed class ReactorWindow : IDisposable
         var size = _appWindow.Size;
         int x = work.X + Math.Max(0, (work.Width - size.Width) / 2);
         int y = work.Y + Math.Max(0, (work.Height - size.Height) / 2);
-        _appWindow.Move(new global::Windows.Graphics.PointInt32(x, y));
+        _appWindow.Move(new global::Windows.Graphics.PointInt32 { X = x, Y = y });
     }
 
     private static DisplayArea? ResolveOwnerDisplayArea(ReactorWindow? owner)
